@@ -1,0 +1,26 @@
+(ns zuhyo.native-deck-host
+  (:export [main])
+  (:require [zuhyo.deck :as deck]))
+(defn item [d :document k :keyword] :document
+  (option-value-of [:option :document] (document-get d k) (document-null)))
+(defn text [d :document] :string
+  (option-value-of [:option :string] (document-string-value d) ""))
+(defn main [] :i64
+  (let [initial (deck/init)
+        edited (deck/step initial "body" "input" "OS文書😀\n二行")
+        added (deck/step edited "add" "click" "")
+        returned (deck/step added "prev" "click" "")
+        encoded (deck/snap-encode returned)
+        wire (option-value-of [:option :string] encoded "")
+        restored (deck/snap-decode wire)
+        state (option-value-of [:option :document] restored (document-null))
+        screen (deck/view state)
+        slides (item state :slides)
+        first-slide (option-value-of [:option :document] (document-vector-at slides 0) (document-null))]
+    (if (and (option-some?-of [:option :string] encoded)
+             (option-some?-of [:option :document] restored)
+             (document-equal? state returned)
+             (not (option-some?-of [:option :document] (deck/snap-decode (string-concat wire "x"))))
+             (= (document-count slides) 2)
+             (string=? (text (item first-slide :body)) "OS文書😀\n二行")
+             (string=? (text (item screen :tag)) "div")) 0 1)))

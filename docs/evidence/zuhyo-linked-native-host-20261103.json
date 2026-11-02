@@ -1,0 +1,139 @@
+{
+  "status": "PASS_ZUHYO_LINKED_HOST",
+  "compilerSHA256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+  "host": [
+    "Darwin",
+    "arm64"
+  ],
+  "packagerSHA256": "e95284408f091c8979ef74ece57116a4df2250e61e42074da5dc95ca30264142",
+  "resultBits": 8,
+  "artifacts": {
+    "host": {
+      "unsignedSHA256": "ea5ecb13e8d9a990f556a75a84c5bee3f8c5e1b24bf08dbdc3e93e757418a31a",
+      "lockSHA256": "ab26f395044b75e352a76f509168c29ac5d18519ebecd2ef51f24ff15ef948ed",
+      "sources": {
+        "zuhyo/deck.kotoba": "ed059e975c6bb5fb80798368e7a37c6ba910effd56785f9626f878e2b04b08e2",
+        "zuhyo/native_deck_host.kotoba": "74bb0d146cbf268e6ae2e7babb86a144e418d4c06844ceb70d0cbb8e9c8117a3"
+      }
+    },
+    "mutant": {
+      "unsignedSHA256": "462bc53d0798c646ec6e3374a7c910541f2dab9641a7af21345427d364ba7b9e",
+      "lockSHA256": "9972bb40eb90dad341e75e01c65e5cdd39a9fda265e11723115cfec797fbe3ad",
+      "sources": {
+        "zuhyo/deck.kotoba": "512b5aeeba21e57b98effa3ab97a909088263cabd5ee143d0e88085faf187e72",
+        "zuhyo/native_deck_host.kotoba": "74bb0d146cbf268e6ae2e7babb86a144e418d4c06844ceb70d0cbb8e9c8117a3"
+      }
+    }
+  },
+  "observations": [
+    {
+      "name": "host-check",
+      "exit": 0,
+      "seconds": 0.362,
+      "stdoutSHA256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "host-compile",
+      "exit": 0,
+      "seconds": 0.362,
+      "stdoutSHA256": "0510b8c184ef3bd09a4cb1ca465dc0a6917901d2ccdf1ec9a62273d6019dfeaa",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "host-extract",
+      "exit": 0,
+      "seconds": 0.008,
+      "stdoutSHA256": "486fe9b992e8aabd47b8783db183eace07debd41181ff1cd4c7ce3c436a0294f",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "host-package",
+      "exit": 0,
+      "seconds": 0.008,
+      "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "linked-model",
+      "exit": 0,
+      "seconds": 0.238,
+      "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "mutant-check",
+      "exit": 0,
+      "seconds": 0.372,
+      "stdoutSHA256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "mutant-compile",
+      "exit": 0,
+      "seconds": 0.37,
+      "stdoutSHA256": "830c0395ec4a0486b2addc384837778a1876bf034524b57edc663b4ad3075728",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "mutant-extract",
+      "exit": 0,
+      "seconds": 0.008,
+      "stdoutSHA256": "95919238ed13c195954b7ea5f1d7a8db5154613552f381f156d0b9ee8c0a66d7",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "mutant-package",
+      "exit": 0,
+      "seconds": 0.007,
+      "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "mutation-detected",
+      "exit": 1,
+      "seconds": 0.269,
+      "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "publicTestKeysOnly": true,
+  "observerSHA256": "11352e36f2134e068f820e318fff55b91887e65076130648f538ea72c205efe6",
+  "stagerSHA256": "fdcc7104d681e153a6d235c770030e3020c6ee90280b0831f997caa89998e0be",
+  "nativeGateSHA256": "84dea6644db292aaede4d93c39f326cdf41b83ad7482632c969dd6cae9bf9e37",
+  "browserBuild": {
+    "wasmSha256": "8ee1f10004fa57d6ff50f00855ed276031b4d008b4c65a8084b744df63ef7628",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "fec489655a1b3f8a87bc2f8a1c3adb3c56b1d2d3c7984dbd7d2cbb82185beb85",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+  },
+  "normalizedSourceSha256": "fec489655a1b3f8a87bc2f8a1c3adb3c56b1d2d3c7984dbd7d2cbb82185beb85",
+  "originalSourceSha256": "a47207a1b762c62e912928736d625fe0f1454139d357e9557b7c3fb17b3d1abe",
+  "hostSourceSha256": "ed059e975c6bb5fb80798368e7a37c6ba910effd56785f9626f878e2b04b08e2",
+  "scope": "macOS Arm native with synthetic data; no Itonami OS GUI, QEMU, durable storage or release",
+  "browserModelRegression": {
+    "sourceSha256": "a47207a1b762c62e912928736d625fe0f1454139d357e9557b7c3fb17b3d1abe",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "results": {
+      "deck": {
+        "result": 0,
+        "wasmSha256": "847390778171d31570f477ab37f5812ab634e38da7adef67ebc29a04f3de1d48"
+      },
+      "mutant": {
+        "result": 1,
+        "wasmSha256": "15b4eb080c68206f7edc76b57d40f38fd7c28f0efe5f0ffa13f12ff9e27d549e"
+      },
+      "version-mutant": {
+        "result": 1,
+        "wasmSha256": "a6356bb4c592b9f04a61bcfff5fe67f4c26718fcb78e9531abc815ccb575a8e0"
+      }
+    }
+  },
+  "developmentNote": "Directly adding exports to the original module caused the existing amu run gate to fail; source declaration was restored and only staged host declaration changes.",
+  "limitations": [
+    "macOS Arm synthetic linked host; no Itonami OS runtime, GUI, QEMU, filesystem persistence or release.",
+    "Only the namespace export declaration is changed for the native host build; the original model body and browser staged source are unchanged."
+  ]
+}
