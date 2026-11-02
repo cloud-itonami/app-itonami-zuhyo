@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-03",
+  "candidateReceipt": {
+    "wasmSha256": "59d50c9adbebfae912da432ebd330b9011739eea7a4d5217c7ce83773dbc1bd9",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "38ea36c2a39d90346e59c3df21141862a450fd4f871bfd169b1426d19899f917",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab",
+    "draftPolicyRevision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+    "draftPolicySourceSha256": "8888ad0d88e8f954b5b1cd4fa0d3da62ac13e906f9410866cfd9dec6112f11f2",
+    "draftPolicyWasmSha256": "baa17f80e3ce7ce32b86086606168846454ca547842359251b50b911d4b89e42",
+    "didSha256": "c0d2281c76eca67add88ef2ad86201f5185eea70a9d404156dcc0fa0ee5737da",
+    "storageRevision": "d569c4cc7e884c58dc5867c38731c9465bac70dc",
+    "transactionalStorageSha256": "3d83f73142bd053dadb82d23d8e220ee9f3490515568b048d95f2ac1954c5dcf",
+    "managedStorageSha256": "f48d45cedf89be861f1a3376e04ded9a19c2914e3cbd4756326b1799ab7a14c0"
+  },
+  "observerSha256": "4d38e4219a13244e48ca5e97b2820423d492221bfd71fc684fc93fc621615228",
+  "tests": {
+    "jun-705-large-positive-v2": {
+      "sha256": "37939ea591a965956a65b245b9f801d8f5d5615214526ac1f71cb6851ab43c10",
+      "result": {
+        "status": "PASS_ZUHYO_LARGE_RESTORE_EDIT_RELOAD",
+        "snapshotBytes": 25397,
+        "slides": 16,
+        "fieldBytes": 512,
+        "previousStateBackedUp": true
+      }
+    },
+    "jun-705-large-multiline-v1": {
+      "sha256": "38a964a3b1a3dffedd927cb77bc996c16d0aa5fb98d410ccd2505473816df9af",
+      "result": {
+        "status": "PASS_ZUHYO_LARGE_RESTORE_EDIT_RELOAD",
+        "snapshotBytes": 25397,
+        "slides": 16,
+        "fieldBytes": 512,
+        "multiline": true,
+        "previousStateBackedUp": true
+      }
+    },
+    "jun-705-large-fuel-v1": {
+      "sha256": "7f9556a02b08afd1329335020ffc42440ce6c2fc6b3457358e6f4bf6dcac1a32",
+      "result": {
+        "protect-25000000": {
+          "exit": 0,
+          "report": "{:status :ok :result 0 :fuel {:initial 25000000 :remaining 19911708}}",
+          "stderr": "",
+          "outputSha256": "d10223bc3c20cb7e1229d61c41b36503aff2f35c1996e8db7bd68f266de40539"
+        },
+        "protect-100000000": {
+          "exit": 0,
+          "report": "{:status :ok :result 0 :fuel {:initial 100000000 :remaining 94911708}}",
+          "stderr": "",
+          "outputSha256": "d10223bc3c20cb7e1229d61c41b36503aff2f35c1996e8db7bd68f266de40539"
+        },
+        "view-25000000": {
+          "exit": 0,
+          "report": "{:status :ok :result 0 :fuel {:initial 25000000 :remaining 19970211}}",
+          "stderr": "",
+          "outputSha256": "9f7fdfc4c354d95857b3b5f5ee2d6d90d8cb0c9cfc14cafa79082030e50424dd"
+        },
+        "view-100000000": {
+          "exit": 0,
+          "report": "{:status :ok :result 0 :fuel {:initial 100000000 :remaining 94970211}}",
+          "stderr": "",
+          "outputSha256": "9f7fdfc4c354d95857b3b5f5ee2d6d90d8cb0c9cfc14cafa79082030e50424dd"
+        },
+        "step-25000000": {
+          "exit": 0,
+          "report": "{:status :ok :result 0 :fuel {:initial 25000000 :remaining 19423650}}",
+          "stderr": "",
+          "outputSha256": "19d35d72fc90c2d516d8366152432f1a79bd68a1f4bb4cb0193453eadbe8446f"
+        },
+        "step-100000000": {
+          "exit": 0,
+          "report": "{:status :ok :result 0 :fuel {:initial 100000000 :remaining 94423650}}",
+          "stderr": "",
+          "outputSha256": "19d35d72fc90c2d516d8366152432f1a79bd68a1f4bb4cb0193453eadbe8446f"
+        }
+      }
+    }
+  },
+  "scope": "synthetic 16-slide Chrome fixtures and direct Wasm fuel observations; no real user data, QEMU, crash/power-loss, or deployment."
+}
