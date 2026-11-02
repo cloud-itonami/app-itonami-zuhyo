@@ -3,6 +3,7 @@ body { margin: 0; }
 #status { margin: 0; padding: .5rem 1rem; background: #fff; }
 .deck { max-width: 65rem; margin: auto; }
 .bar, .tools { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem; background: white; }
+.deck-title { align-self: center; overflow-wrap: anywhere; }
 input, textarea { min-width: 12rem; padding: .45rem; }
 textarea { min-height: 6rem; resize: vertical; font: inherit; }
 .present p { white-space: pre-wrap; overflow-wrap: anywhere; }

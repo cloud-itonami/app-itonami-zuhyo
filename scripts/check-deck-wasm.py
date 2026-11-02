@@ -17,11 +17,13 @@ anchor = '(document-vector-assoc (document-vector-assoc v i (dat v j)) j (dat v 
 if source.count(anchor) != 1: raise ValueError('mutation anchor changed')
 version_anchor = '(if (needs-zs2? s) "ZS2|" "ZS1|")'
 if source.count(version_anchor) != 1: raise ValueError('snapshot version anchor changed')
+present_anchor = '(string=? (dstr (dget s :mode)) "present") s'
+if source.count(present_anchor) != 1: raise ValueError('presentation guard anchor changed')
 spec = importlib.util.spec_from_file_location('mac', amu / 'scripts/seed/check-aiueos-user-macos-native.py')
 mac = importlib.util.module_from_spec(spec); spec.loader.exec_module(mac)
 compiler = amu / 'seed/bootstrap/aarch64-macos/amu-full-root.macho'
 results = {}
-for name, text, expected in [('deck', source, 0), ('mutant', source.replace(anchor, anchor[:-2] + 'i)'), 1), ('version-mutant', source.replace(version_anchor, '"ZS1|"'), 1)]:
+for name, text, expected in [('deck', source, 0), ('mutant', source.replace(anchor, anchor[:-2] + 'i)'), 1), ('version-mutant', source.replace(version_anchor, '"ZS1|"'), 1), ('present-mutant', source.replace(present_anchor, 'false s'), 1)]:
     src = out / (name + '.kotoba'); src.write_text(text)
     run = subprocess.run([str(amu / 'bin/amu'), 'run', str(src)], capture_output=True, text=True, check=True, timeout=120)
     if run.stdout.strip() != str(expected): raise ValueError('native ' + name + ': ' + run.stdout)
@@ -34,4 +36,4 @@ for name, text, expected in [('deck', source, 0), ('mutant', source.replace(anch
     results[name] = {'result': expected, 'wasmSha256': hashlib.sha256((out / (name + '.wasm')).read_bytes()).hexdigest()}
 (out / 'receipt.json').write_text(json.dumps({'sourceSha256': hashlib.sha256(source.encode()).hexdigest(),
     'compilerSha256': hashlib.sha256(compiler.read_bytes()).hexdigest(), 'results': results}, indent=2) + '\n')
-print('PASS_ZUHYO_MODEL native, Wasm, reorder and snapshot-version mutants')
+print('PASS_ZUHYO_MODEL native, Wasm, reorder, snapshot-version and presentation mutants')

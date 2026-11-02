@@ -73,6 +73,8 @@ try:
     wait("document.querySelector('.stats')?.textContent === '1 / 2'", 'reorder')
     evaluate("document.querySelector('[data-k=mode]').click()")
     wait("document.querySelector('main.present.shape-circle h1')?.textContent === '第二枚'", 'presentation')
+    if evaluate("document.querySelector('.deck input, .deck textarea, [data-k=add], [data-k=remove], [data-k=up], [data-k=down], [data-k=backup-import]') !== null"): raise ValueError('editing controls visible in presentation')
+    if evaluate("document.querySelector('.bar .deck-title')?.textContent") != '無題のプレゼン': raise ValueError('presentation title missing')
     if evaluate("document.querySelector('main.present p')?.textContent") != body_text or evaluate("getComputedStyle(document.querySelector('main.present p')).whiteSpace") != 'pre-wrap': raise ValueError('multiline presentation missing')
     saved = evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
     if not saved or not saved.startswith('ZS2|') or '第二枚' not in saved or notes_text not in saved: raise ValueError('deck not saved')
