@@ -15,3 +15,6 @@ button { padding: .4rem .6rem; cursor: pointer; }
 dialog { width: min(52rem, 90vw); max-height: 85vh; border: 1px solid #808891; }
 dialog::backdrop { background: #0008; }
 #backup-preview { max-height: 50vh; overflow: auto; border: 1px solid #aab2bc; margin: 1rem 0; }
+
+#draft-notice, #draft-recovery { margin: .75rem auto; max-width: 68rem; padding: .75rem; background: #fff4d5; }
+#draft-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16rem; overflow: auto; }

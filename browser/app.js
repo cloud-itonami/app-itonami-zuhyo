@@ -4,11 +4,16 @@ import { descriptor, wasmBase64, wasmSha256 } from './bundle.js';
 const status = document.getElementById('status');
 const mount = document.getElementById('app');
 const retrySave = document.getElementById('retry-save');
+const draftNotice = document.getElementById('draft-notice');
+const draftPanel = document.getElementById('draft-recovery');
+const draftRestore = document.getElementById('draft-restore');
+let draftBlocked = false, recoveryRaw = null, recoveryItems = null, lockedControls = [];
 const edits = new Map();
 const composing = new Set();
 let deferredRender = null;
 let editSequence = 0;
 const KEY = 'itonami.zuhyo.candidate.zs1';
+const DRAFT_KEY = KEY + '.session-draft.v1';
 const LIMIT = 35000;
 const MAX_VIEW = 1000000;
 const BACKUP_PREFIX = KEY + '.preimport.';
@@ -21,10 +26,86 @@ const decoder = new TextDecoder('utf-8', { fatal: true });
 let bytes, compiledModule, snapshot, persisted;
 let pending = Promise.resolve();
 window.addEventListener('beforeunload', e => {
-  if (edits.size) { e.preventDefault(); e.returnValue = ''; }
+  if (edits.size || draftBlocked) { e.preventDefault(); e.returnValue = ''; }
 });
 
 function fail(message) { status.textContent = message; }
+function draftWarning(message) { draftNotice.textContent = message; draftNotice.hidden = !message; }
+function writeDraft() {
+  if (draftBlocked) return;
+  try {
+    if (!edits.size) sessionStorage.removeItem(DRAFT_KEY);
+    else {
+      const raw = JSON.stringify({ version: 1, program: wasmSha256, base: persisted, baseState: snapshot, entries: [...edits].map(([key, edit]) => [key, edit.value]) });
+      if (raw.length > 1000000) throw Error('draft bounds');
+      sessionStorage.setItem(DRAFT_KEY, raw);
+    }
+    draftWarning('');
+  } catch (_) { draftWarning(edits.size ? '未保存入力の再読込用コピーを記録できません。画面の入力を別に控えてください。' : '保存済みですが、再読込用コピーを削除できません。次回確認してください。'); }
+}
+function unlockDraftMount() {
+  for (const [el, disabled] of lockedControls) el.disabled = disabled;
+  lockedControls = [];
+  mount.inert = false;
+}
+function offerDraft(raw, allowRestore) {
+  recoveryRaw = raw; recoveryItems = null; draftBlocked = true; mount.inert = true;
+  lockedControls = [...mount.querySelectorAll('input,button')].map(el => [el, el.disabled]);
+  for (const [el] of lockedControls) el.disabled = true;
+  let data = null;
+  try { if (raw.length <= 1000000) data = JSON.parse(raw); } catch (_) {}
+  const seen = new Set();
+  const inputs = new Set([...mount.querySelectorAll('input[data-k]')].map(el => el.dataset.k));
+  const valid = data && data.version === 1 && typeof data.program === 'string' && /^[0-9a-f]{64}$/.test(data.program) && (data.base === null || typeof data.base === 'string') &&
+    typeof data.baseState === 'string' && data.baseState.length <= LIMIT && Array.isArray(data.entries) && data.entries.length > 0 && data.entries.length <= 33 &&
+    data.entries.every(entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' &&
+      typeof entry[1] === 'string' && entry[0].length <= 128 && entry[1].length <= 65536 &&
+      !seen.has(entry[0]) && (seen.add(entry[0]), true));
+  if (valid) recoveryItems = data.entries;
+  const matches = !!(allowRestore && valid && data.program === wasmSha256 && data.base === persisted && data.baseState === snapshot && data.entries.every(entry => inputs.has(entry[0])));
+  draftRestore.disabled = !matches;
+  document.getElementById('draft-message').textContent = matches
+    ? '前回の未保存入力です。内容を確認して画面に戻し、再保存してください。'
+    : '保存済み内容との対応を確認できません。書き出して内容を控えてから、破棄するか判断してください。';
+  document.getElementById('draft-preview').textContent = valid
+    ? data.entries.map(([key, value]) => key + ': ' + (value.length > 4096 ? value.slice(0, 4096) + '…' : value)).join('\n\n')
+    : '形式を確認できないため、内容のプレビューは表示できません。';
+  draftPanel.hidden = false;
+}
+function inspectDraft(allowRestore) {
+  try { const raw = sessionStorage.getItem(DRAFT_KEY); if (raw !== null) offerDraft(raw, allowRestore); }
+  catch (_) { draftWarning('再読込用の未保存データを確認できません。'); }
+}
+document.getElementById('draft-download').addEventListener('click', () => {
+  if (recoveryRaw === null) return;
+  const url = URL.createObjectURL(new Blob([recoveryRaw], { type: 'application/json' }));
+  const link = document.createElement('a'); link.href = url; link.download = 'zuhyo-unsaved-draft.json'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+});
+document.getElementById('draft-discard').addEventListener('click', () => {
+  if (!draftBlocked || !window.confirm('このタブの未保存データを破棄しますか？')) return;
+  try { sessionStorage.removeItem(DRAFT_KEY); }
+  catch (_) { draftWarning('未保存データを破棄できません。'); return; }
+  draftBlocked = false; recoveryRaw = null; recoveryItems = null; draftPanel.hidden = true; unlockDraftMount();
+  try {
+    fail(localStorage.getItem(KEY) === persisted ? '未保存データを破棄しました。' : '未保存データを破棄しました。別のタブの変更を開くため再読込してください。');
+  } catch (_) { fail('未保存データを破棄しました。保存済み内容を確認できません。'); }
+});
+draftRestore.addEventListener('click', () => {
+  if (!draftBlocked || draftRestore.disabled || !recoveryItems) return;
+  try {
+    if (localStorage.getItem(KEY) !== persisted) throw Error('concurrent change');
+  } catch (_) {
+    draftRestore.disabled = true;
+    document.getElementById('draft-message').textContent = '保存済み内容が変わったか確認できません。書き出して内容を控えてください。';
+    return;
+  }
+  for (const [key, value] of recoveryItems) edits.set(key, { value, sequence: ++editSequence, failed: true });
+  draftBlocked = false; recoveryRaw = null; recoveryItems = null; draftPanel.hidden = true; unlockDraftMount();
+  for (const el of mount.querySelectorAll('input[data-k]')) if (edits.has(el.dataset.k)) el.value = edits.get(el.dataset.k).value;
+  refreshRetry();
+  fail('未保存入力を画面に戻しました。内容を確認して再保存してください。');
+});
 function parseTree(wire) {
   const data = encoder.encode(wire);
   if (data.length > MAX_VIEW || !wire.startsWith('BV2|') || data[data.length - 1] !== 10) throw Error('view format');
@@ -93,6 +174,7 @@ function failEdit(event, reason) {
 }
 async function dispatch(event) {
   const { key, value, focus } = event;
+  if (draftBlocked) { fail('前回の未保存データを確認してください。'); return; }
   if (event.type === 'input' && edits.get(key)?.sequence !== event.sequence) return;
   if (event.type === 'click' && edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
   if (encoder.encode(key).length > 128 || encoder.encode(value).length > 512) {
@@ -112,6 +194,7 @@ async function dispatch(event) {
       persisted = next;
       snapshot = next;
       if (event.type === 'input' && edits.get(key)?.sequence === event.sequence) edits.delete(key);
+      writeDraft();
       render(tree, focus);
       refreshRetry();
       fail(edits.size ? '保存待ちの入力があります。' : '保存しました');
@@ -125,12 +208,13 @@ async function dispatch(event) {
 function captureInput(el) {
   const key = el.dataset.k, value = el.value, sequence = ++editSequence;
   edits.set(key, { value, sequence, failed: false });
+  writeDraft();
   refreshRetry();
   return { key, value, sequence, focus: { key, start: el.selectionStart, end: el.selectionEnd }, type: 'input' };
 }
 mount.addEventListener('compositionstart', e => {
   const el = e.target.closest('input[data-k]');
-  if (!el || !mount.contains(el)) return;
+  if (!el || !mount.contains(el) || draftBlocked) return;
   composing.add(el.dataset.k);
   captureInput(el);
 });
@@ -149,7 +233,7 @@ mount.addEventListener('compositionend', e => {
 for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   // Capture the target and value before an earlier queued render replaces it.
   const el = e.target.closest('[data-k]');
-  if (!el || !mount.contains(el) || (e.type === 'input' && el.tagName !== 'INPUT')
+  if (!el || !mount.contains(el) || draftBlocked || (e.type === 'input' && el.tagName !== 'INPUT')
       || (e.type === 'click' && el.tagName !== 'BUTTON')) return;
   const key = el.dataset.k, value = e.type === 'input' ? el.value : '';
   if (e.type === 'input') {
@@ -166,6 +250,7 @@ for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   pending = pending.then(() => dispatch(captured));
 });
 retrySave.addEventListener('click', () => {
+  if (draftBlocked) return;
   for (const [key, edit] of edits) {
     if (edit.failed) {
       edit.failed = false;
@@ -261,12 +346,14 @@ async function start() {
     snapshot = saved;
     await draw(snapshot);
     fail('保存済みのスライドを開きました');
+    inspectDraft(true);
   } else {
     const output = await run(['init']);
     if (!output.endsWith('\n')) throw Error('init');
     snapshot = output.slice(0, -1);
     await draw(snapshot);
     fail('新しいスライド');
+    inspectDraft(true);
   }
 }
-start().catch(() => fail('スライドを開けません。保存済みの内容は変更していません。'));
+start().catch(() => { fail('スライドを開けません。保存済みの内容は変更していません。'); inspectDraft(false); });
