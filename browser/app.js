@@ -3,6 +3,9 @@ import { descriptor, wasmBase64, wasmSha256 } from './bundle.js';
 
 const status = document.getElementById('status');
 const mount = document.getElementById('app');
+const retrySave = document.getElementById('retry-save');
+const edits = new Map();
+let editSequence = 0;
 const KEY = 'itonami.zuhyo.candidate.zs1';
 const LIMIT = 35000;
 const MAX_VIEW = 1000000;
@@ -62,19 +65,31 @@ function run(args) {
     worker.postMessage({ module: compiledModule, fuel: 25000000, allow: [37, 38], args });
   });
 }
-async function draw(state, focus) {
-  const tree = parseTree(await run(['view', state]));
+function refreshRetry() { retrySave.hidden = ![...edits.values()].some(edit => edit.failed); }
+function render(tree, focus) {
   mount.replaceChildren(tree);
+  for (const node of mount.querySelectorAll('input[data-k]')) {
+    const edit = edits.get(node.dataset.k);
+    if (edit) node.value = edit.value;
+  }
   if (focus) {
     const found = [...mount.querySelectorAll('[data-k]')].find(el => el.dataset.k === focus.key);
     if (found) { found.focus(); if (typeof found.setSelectionRange === 'function' && focus.start !== null) found.setSelectionRange(focus.start, focus.end); }
   }
 }
+async function draw(state, focus) { render(parseTree(await run(['view', state])), focus); }
+function failEdit(event, reason) {
+  const edit = edits.get(event.key);
+  if (event.type === 'input' && edit?.sequence === event.sequence) edit.failed = true;
+  refreshRetry();
+  fail(reason + (edits.size ? '未保存の入力は画面に残っています。再読込すると失われます。' : '保存済みの内容を保持しています。'));
+}
 async function dispatch(event) {
   const { key, value, focus } = event;
+  if (event.type === 'input' && edits.get(key)?.sequence !== event.sequence) return;
+  if (event.type === 'click' && edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
   if (encoder.encode(key).length > 128 || encoder.encode(value).length > 512) {
-    fail('入力が長すぎます。');
-    try { await draw(snapshot, focus); } catch (_) {}
+    failEdit(event, '入力が長すぎます。');
     return;
   }
   try {
@@ -89,18 +104,15 @@ async function dispatch(event) {
       localStorage.setItem(KEY, next);
       persisted = next;
       snapshot = next;
-      mount.replaceChildren(tree);
-      if (focus) {
-        const found = [...mount.querySelectorAll('[data-k]')].find(node => node.dataset.k === focus.key);
-        if (found) { found.focus(); if (focus.start !== null) found.setSelectionRange(focus.start, focus.end); }
-      }
-      fail('保存しました');
+      if (event.type === 'input' && edits.get(key)?.sequence === event.sequence) edits.delete(key);
+      render(tree, focus);
+      refreshRetry();
+      fail(edits.size ? '保存待ちの入力があります。' : '保存しました');
     });
   } catch (error) {
     const reason = error?.message === 'worker timeout' ? '処理が時間内に完了しませんでした。' :
-      error?.message === 'concurrent change' ? '別のタブで変更されています。再読込してください。' : '';
-    fail('保存できませんでした。' + reason + '前の内容を保持しています。');
-    try { await draw(snapshot, focus); } catch (_) { /* leave the previous view */ }
+      error?.message === 'concurrent change' ? '別のタブで変更されています。入力をコピーしてから再読込してください。' : '';
+    failEdit(event, '保存できませんでした。' + reason);
   }
 }
 for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
@@ -109,14 +121,27 @@ for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   if (!el || !mount.contains(el) || (e.type === 'input' && el.tagName !== 'INPUT')
       || (e.type === 'click' && el.tagName !== 'BUTTON')) return;
   const key = el.dataset.k, value = e.type === 'input' ? el.value : '';
+  if (e.type === 'click' && key.startsWith('backup-') && edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
   if (e.type === 'click' && key === 'backup-import') { backupFile.value = ''; backupFile.click(); return; }
   if (e.type === 'click' && key === 'backup-export') { pending = pending.then(exportBackup); return; }
   if (e.type === 'click' && key === 'backup-restore') { pending = pending.then(restoreBackup); return; }
   const focus = e.type === 'input' ? { key, start: el.selectionStart, end: el.selectionEnd } : null;
-  const captured = { key, value, focus, type: e.type };
+  const sequence = e.type === 'input' ? ++editSequence : 0;
+  if (e.type === 'input') { edits.set(key, { value, sequence, failed: false }); refreshRetry(); }
+  const captured = { key, value, focus, type: e.type, sequence };
   pending = pending.then(() => dispatch(captured));
 });
+retrySave.addEventListener('click', () => {
+  for (const [key, edit] of edits) {
+    if (edit.failed) {
+      edit.failed = false;
+      pending = pending.then(() => dispatch({ key, value: edit.value, sequence: edit.sequence, focus: null, type: 'input' }));
+    }
+  }
+  refreshRetry();
+});
 function exportBackup() {
+  if (edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
   if (typeof snapshot !== 'string') return;
   const url = URL.createObjectURL(new Blob([snapshot], { type: 'application/octet-stream' }));
   const link = document.createElement('a');
@@ -137,6 +162,7 @@ backupFile.addEventListener('change', () => {
   if (!file) return;
   pending = pending.then(async () => {
     try {
+      if (edits.size) throw Error('unsaved input');
       if (file.size > LIMIT) throw Error('backup too large');
       await previewBackup(decoder.decode(await file.arrayBuffer()), file.name);
     } catch (_) { fail('バックアップを読み込めません。現在のスライドは変更していません。'); }
@@ -144,6 +170,7 @@ backupFile.addEventListener('change', () => {
 });
 async function restoreBackup() {
   try {
+    if (edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
     let latest = '';
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -165,6 +192,7 @@ document.getElementById('backup-confirm').addEventListener('click', () => {
       await navigator.locks.request(KEY, async () => {
         if (localStorage.getItem(KEY) !== persisted) throw Error('concurrent change');
         const tree = parseTree(await run(['view', next]));
+        if (edits.size) throw Error('unsaved input');
         let stamp = Date.now();
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
@@ -180,7 +208,8 @@ document.getElementById('backup-confirm').addEventListener('click', () => {
         fail('バックアップから復元しました。');
       });
     } catch (error) {
-      const reason = error?.message === 'concurrent change' ? '別のタブで変更されています。再読込してください。' : '';
+      const reason = error?.message === 'concurrent change' ? '別のタブで変更されています。再読込してください。' :
+        error?.message === 'unsaved input' ? '未保存の入力を再保存または修正してください。' : '';
       fail('復元できませんでした。' + reason + '前の内容を保持しています。');
     }
   });
