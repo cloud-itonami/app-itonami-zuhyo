@@ -135,8 +135,20 @@ try:
     wait("document.getElementById('status').textContent.includes('復元できませんでした')", 'backup quota refusal')
     if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != prior: raise ValueError('quota import changed state')
     evaluate("Storage.prototype.setItem=window.savedSetItem")
-    # Return to the preexisting test fixture without modifying the product data path.
-    evaluate("document.querySelector('[data-k=backup-restore]').click()")
+    # Fail the second write after the recovery copy succeeds.
+    backup_keys = set(evaluate("Object.keys(localStorage).filter(k=>k.startsWith('itonami.zuhyo.candidate.zs1.preimport.'))"))
+    evaluate("document.getElementById('backup-file').value='';document.getElementById('status').textContent=''")
+    select_file(exported)
+    wait("document.getElementById('backup-dialog').open", 'current-write failure preview')
+    evaluate("Storage.prototype.setItem=function(k,v){if(k==='itonami.zuhyo.candidate.zs1')throw Error('quota');return window.savedSetItem.call(this,k,v)};document.getElementById('backup-confirm').click()")
+    wait("document.getElementById('status').textContent.includes('復元できませんでした')", 'current-write failure refusal')
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != prior: raise ValueError('failed current write changed state')
+    after_keys = set(evaluate("Object.keys(localStorage).filter(k=>k.startsWith('itonami.zuhyo.candidate.zs1.preimport.'))"))
+    new_keys = after_keys - backup_keys
+    if len(new_keys) != 1 or evaluate("localStorage.getItem(" + json.dumps(next(iter(new_keys))) + ")") != prior: raise ValueError('pre-import copy missing after failed current write')
+    evaluate("Storage.prototype.setItem=window.savedSetItem;document.getElementById('backup-file').value=''")
+    # Return to the original exported fixture through the validated import path.
+    select_file(exported)
     wait("document.getElementById('backup-dialog').open", 'return backup preview')
     evaluate("document.getElementById('backup-confirm').click()")
     wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('第一😀')", 'return to test state')
@@ -210,7 +222,7 @@ try:
         raise ValueError('tampered candidate ran or wrote state')
     requests = [e['params']['request']['url'] for e in pipe.events if e.get('method') == 'Network.requestWillBeSent']
     if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected network request')
-    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['backup-export-import-cancel-restore','backup-invalid-quota-conflict','edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-timeout','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
+    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['backup-export-import-cancel-restore','backup-invalid-both-write-failures-conflict','edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-timeout','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
     print('PASS_ZUHYO_BROWSER_UI edit, present, save and refusal')
 finally:
     pipe.close(); server.shutdown(); server.server_close()
