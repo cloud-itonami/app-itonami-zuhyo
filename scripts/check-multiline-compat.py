@@ -68,6 +68,18 @@ try:
  ev("document.getElementById('status').textContent='確認待ち';document.getElementById('backup-confirm').click()")
  wait("document.getElementById('status').textContent === 'バックアップから復元しました。'",'legacy backup import')
  if ev('localStorage.getItem('+json.dumps(key)+')')!=saved:raise ValueError('legacy backup not protected')
+ # A same-tab edit which completes after preview must invalidate that preview.
+ ev("document.getElementById('backup-file').value=''")
+ doc=pipe.call('DOM.getDocument',{},session)['root']['nodeId'];node=pipe.call('DOM.querySelector',{'nodeId':doc,'selector':'#backup-file'},session)['nodeId']
+ pipe.call('DOM.setFileInputFiles',{'nodeId':node,'files':[str(backup)]},session);wait("document.getElementById('backup-dialog').open",'stale backup preview')
+ changed='編集中の新しい本文';input_('body',changed)
+ wait("localStorage.getItem("+json.dumps(key)+")?.includes("+json.dumps(changed,ensure_ascii=False)+") && document.getElementById('status').textContent==='保存しました'",'same-tab edit saved')
+ newer=ev('localStorage.getItem('+json.dumps(key)+')')
+ ev("document.getElementById('status').textContent='確認待ち';document.getElementById('backup-confirm').click()")
+ wait("document.getElementById('status').textContent.includes('復元できませんでした') || document.getElementById('status').textContent === 'バックアップから復元しました。'",'stale backup result')
+ if not ev("document.getElementById('status').textContent.includes('復元できませんでした')"):raise ValueError('stale preview accepted')
+ if ev('localStorage.getItem('+json.dumps(key)+')')!=newer:raise ValueError('stale backup overwrote same-tab edit')
+ input_('body',text);wait("localStorage.getItem("+json.dumps(key)+")?.includes("+json.dumps(text,ensure_ascii=False)+") && document.getElementById('status').textContent==='保存しました'",'restore test input')
  input_('heading','編集後');wait("localStorage.getItem("+json.dumps(key)+")?.startsWith('ZS2|') && document.getElementById('status').textContent==='保存しました'",'protected edit')
  if ev("document.querySelector('[data-k=body]')?.value") != text: raise ValueError('legacy line breaks lost')
  # Textarea/input normalization must not silently alter persisted CR bytes.
@@ -77,7 +89,7 @@ try:
  if ev('localStorage.getItem('+json.dumps(key)+')')!=cr: raise ValueError('CR snapshot overwritten')
  requests=[e['params']['request']['url'] for e in pipe.events if e.get('method')=='Network.requestWillBeSent']
  if not requests or any(not x.startswith(base) for x in requests):raise ValueError('unexpected request')
- (out/'result.json').write_text(json.dumps({'status':'PASS','checks':['ZS2 old editor refuses without write','new editor reopens exact text','ZS1 auto-protection, conflict and failed write','legacy backup protection','CR normalization refusal','loopback only'],'scope':'synthetic candidate, no real-user migration or release'},ensure_ascii=False,indent=2)+'\n')
+ (out/'result.json').write_text(json.dumps({'status':'PASS','checks':['ZS2 old editor refuses without write','new editor reopens exact text','ZS1 auto-protection, conflict and failed write','legacy backup protection','stale same-tab preview refusal','CR normalization refusal','loopback only'],'scope':'synthetic candidate, no real-user migration or release'},ensure_ascii=False,indent=2)+'\n')
  print('PASS_ZUHYO_MULTILINE_COMPAT')
 finally:
  pipe.close();server.shutdown();server.server_close()
