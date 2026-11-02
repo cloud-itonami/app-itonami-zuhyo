@@ -52,8 +52,10 @@ try:
     if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") is not None: raise ValueError('focusing input wrote state')
     input_('heading', '第一😀')
     wait("document.querySelector('[data-k=heading]')?.value === '第一😀' && document.getElementById('status').textContent === '保存しました'", 'first heading')
-    input_('notes', '発表者メモ')
-    wait("document.querySelector('[data-k=notes]')?.value === '発表者メモ' && document.getElementById('status').textContent === '保存しました'", 'notes')
+    notes_text = '発表者メモ\n二行目😀'
+    if not evaluate("document.querySelector('[data-k=notes]')?.tagName === 'TEXTAREA' && document.querySelector('[data-k=body]')?.tagName === 'TEXTAREA'"): raise ValueError('multiline controls missing')
+    input_('notes', notes_text)
+    wait("document.querySelector('[data-k=notes]')?.value === "+json.dumps(notes_text,ensure_ascii=False)+" && document.getElementById('status').textContent === '保存しました'", 'multiline notes')
     evaluate("document.querySelector('[data-k=add]').click()")
     wait("document.querySelector('.stats')?.textContent === '2 / 2'", 'add slide')
     evaluate("document.querySelector('[data-k=remove]').click()")
@@ -62,23 +64,24 @@ try:
     wait("document.querySelector('.stats')?.textContent === '2 / 2'", 'add after remove')
     input_('heading', '第二枚')
     wait("document.querySelector('[data-k=heading]')?.value === '第二枚' && document.getElementById('status').textContent === '保存しました'", 'second heading')
-    input_('body', '本文の内容')
-    wait("document.querySelector('[data-k=body]')?.value === '本文の内容' && document.getElementById('status').textContent === '保存しました'", 'body')
+    body_text = '本文の内容\n二行目😀'
+    input_('body', body_text)
+    wait("document.querySelector('[data-k=body]')?.value === "+json.dumps(body_text,ensure_ascii=False)+" && document.getElementById('status').textContent === '保存しました'", 'multiline body')
     evaluate("document.querySelector('[data-k=shape-circle]').click()")
     wait("document.querySelector('main.edit.shape-circle') !== null", 'shape')
     evaluate("document.querySelector('[data-k=up]').click()")
     wait("document.querySelector('.stats')?.textContent === '1 / 2'", 'reorder')
     evaluate("document.querySelector('[data-k=mode]').click()")
     wait("document.querySelector('main.present.shape-circle h1')?.textContent === '第二枚'", 'presentation')
-    if evaluate("document.querySelector('main.present p')?.textContent") != '本文の内容': raise ValueError('body missing')
+    if evaluate("document.querySelector('main.present p')?.textContent") != body_text or evaluate("getComputedStyle(document.querySelector('main.present p')).whiteSpace") != 'pre-wrap': raise ValueError('multiline presentation missing')
     saved = evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
-    if not saved or '第二枚' not in saved or '発表者メモ' not in saved: raise ValueError('deck not saved')
+    if not saved or not saved.startswith('ZS2|') or '第二枚' not in saved or notes_text not in saved: raise ValueError('deck not saved')
     reload_page()
     wait("document.querySelector('main.present.shape-circle h1')?.textContent === '第二枚'", 'presentation reload')
     evaluate("document.querySelector('[data-k=next]').click()")
     wait("document.querySelector('main.present h1')?.textContent === '第一😀'", 'next slide')
     evaluate("document.querySelector('[data-k=mode]').click()")
-    wait("document.querySelector('[data-k=notes]')?.value === '発表者メモ'", 'notes restored')
+    wait("document.querySelector('[data-k=notes]')?.value === "+json.dumps(notes_text,ensure_ascii=False), 'multiline notes restored')
     saved = evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
     # Simulate composition while an earlier field's view is in flight.
     original_other = evaluate("document.querySelector('[data-k=body]').value")
@@ -106,8 +109,8 @@ try:
     pipe.call('Browser.setDownloadBehavior', {'behavior': 'allow', 'downloadPath': str(download)})
     evaluate("document.querySelector('[data-k=backup-export]').click()")
     end = time.time() + 90
-    while time.time() < end and not (download / 'zuhyo-backup.zs1').exists(): time.sleep(.2)
-    exported = download / 'zuhyo-backup.zs1'
+    while time.time() < end and not (download / 'zuhyo-backup.zs2').exists(): time.sleep(.2)
+    exported = download / 'zuhyo-backup.zs2'
     if not exported.exists() or exported.read_text() != saved: raise ValueError('backup download mismatch')
     evaluate("(()=>{let e=document.querySelector('[data-k=heading]');e.value='バックアップ前';e.dispatchEvent(new Event('input',{bubbles:true}));})()")
     wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('バックアップ前')", 'edit before import')
@@ -221,12 +224,14 @@ try:
     input_('heading','第一😀');wait("localStorage.getItem('itonami.zuhyo.candidate.zs1') === " + json.dumps(saved,ensure_ascii=False), 'restore timeout fixture')
     background=pipe.call('Target.createTarget', {'url':'about:blank'})['targetId']
     wait("document.visibilityState === 'hidden'", 'hidden tab')
-    evaluate("window.savedTimer=window.setTimeout;window.setTimeout=(f,n)=>window.savedTimer(f,n===30000?1:n)")
+    # Explicitly stall the Worker: background timer throttling may otherwise
+    # let a fast Worker win the deliberately shortened timeout race.
+    evaluate("window.hiddenWorker=window.Worker;window.Worker=class extends window.hiddenWorker {postMessage(msg,...rest){if(msg.args[0]!=='step')super.postMessage(msg,...rest)}};window.savedTimer=window.setTimeout;window.setTimeout=(f,n)=>window.savedTimer(f,n===30000?1:n)")
     input_('heading','背景入力');wait("document.getElementById('status').textContent.includes('時間内に完了しませんでした')", 'hidden timeout')
     pipe.call('Page.bringToFront', {}, session);wait("document.visibilityState === 'visible'", 'return to tab')
     if evaluate("document.querySelector('[data-k=heading]')?.value") != '背景入力' or evaluate("document.getElementById('retry-save').hidden") or evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != saved: raise ValueError('hidden timeout discarded input')
     pipe.call('Target.closeTarget', {'targetId':background})
-    evaluate("window.setTimeout=window.savedTimer;document.getElementById('retry-save').click()")
+    evaluate("window.Worker=window.hiddenWorker;window.setTimeout=window.savedTimer;document.getElementById('retry-save').click()")
     wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('背景入力') && document.getElementById('retry-save').hidden", 'hidden retry')
     input_('heading','第一😀');wait("localStorage.getItem('itonami.zuhyo.candidate.zs1') === " + json.dumps(saved,ensure_ascii=False), 'restore hidden fixture')
     reload_page()
@@ -275,7 +280,7 @@ try:
     requests = [e['params']['request']['url'] for e in pipe.events if e.get('method') == 'Network.requestWillBeSent']
     if any(u.split('?', 1)[0].endswith('/favicon.ico') for u in requests): raise ValueError('unversioned favicon request')
     if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected network request')
-    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['backup-export-import-cancel-restore','backup-invalid-both-write-failures-conflict','edit','notes','add','remove','shape','reorder','present','reload','navigate','synthetic-composition-with-concurrent-redraw','oversized-refusal','concurrent-tab-refusal','worker-timeout-retry','hidden-timeout-retry','worker-interruption-retry','storage-failure-retry','multiple-unsaved-fields','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
+    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['backup-export-import-cancel-restore','backup-invalid-both-write-failures-conflict','edit','multiline-notes-presentation-reload','add','remove','shape','reorder','present','reload','navigate','synthetic-composition-with-concurrent-redraw','oversized-refusal','concurrent-tab-refusal','worker-timeout-retry','hidden-timeout-retry','worker-interruption-retry','storage-failure-retry','multiple-unsaved-fields','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
     print('PASS_ZUHYO_BROWSER_UI edit, present, save and refusal')
 finally:
     pipe.close(); server.shutdown(); server.server_close()

@@ -1,0 +1,215 @@
+{
+  "date": "2026-11-03",
+  "scope": "synthetic native/Chrome Wasm and isolated loopback browser candidate",
+  "appSourceHeadBeforeChanges": "e12880dc0967968753b027dfc1d7486f9503133c",
+  "sourceSha256": {
+    "src/zuhyo/deck.kotoba": "a47207a1b762c62e912928736d625fe0f1454139d357e9557b7c3fb17b3d1abe",
+    "src/zuhyo/browser-entry.kotoba": "8af394e996978c1bb528d46864635c81cc421e2e5fd8012a1c84866b53b067d8",
+    "browser/app.js": "6f65ebaca40c21176dc914b779b1912485a222a202c8dc544ea9c1521fca64a7",
+    "browser/index.html": "6fb6d11f8f81809b8f68a8282f2a8b232bec0c5f4a7e2b3b0137ebb3ebc20893",
+    "browser/style.css": "5592848f969fde01d0bb4405f0e6260f3d39e642a4a0962e7d552878c882ca47",
+    "scripts/check-deck-wasm.py": "ac2fa02e09859c03b5f11a152cf2b660c507316f0099f3d891d7494a1ac94009",
+    "scripts/check-browser-ui.py": "7b7cc3dcf8ced4db538694984db2793d34779326e90e149ce93673b5fbc73d77",
+    "scripts/check-browser-ime.py": "9d537a07bcf2976a6b10740c7979b61e33aa18d6ce6eb01ba59b88c701f8ae56",
+    "scripts/check-browser-session-draft.py": "197a6aa59c0bb9c47b738d31d76cb72810b4457560fc15ac3e5a7d729cce1c3b",
+    "scripts/check-browser-unload.py": "d66c888847c48abc0690fb3a39492b8a7834827d4d47f8a137c9323eeadede82",
+    "scripts/check-multiline-compat.py": "4ccc1f2394ac61b3efb752751939f43dbdcb17ec2d623546f1b7c1031b470018"
+  },
+  "build": {
+    "wasmSha256": "2e424ec79f868d9cb1ef8d8d9303cb734972ab9270b5927d1c2b76f23b894f64",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "9da3400e6bddf41a94d8cc19826b828544a3c19c5c7da41cd48659a6f78ef988",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+  },
+  "oldCandidateBuild": {
+    "wasmSha256": "e273cfd8ab75d8a70f8a89e6ae2ed3c15bb95cb14fb0ae4be5c67a5091c757fb",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "b87d865a3978a39fc72b798908653b44fdc0c9bec2bb0008ab1bd91143316cd3",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+  },
+  "deckReceipt": {
+    "sourceSha256": "a47207a1b762c62e912928736d625fe0f1454139d357e9557b7c3fb17b3d1abe",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "results": {
+      "deck": {
+        "result": 0,
+        "wasmSha256": "847390778171d31570f477ab37f5812ab634e38da7adef67ebc29a04f3de1d48"
+      },
+      "mutant": {
+        "result": 1,
+        "wasmSha256": "15b4eb080c68206f7edc76b57d40f38fd7c28f0efe5f0ffa13f12ff9e27d549e"
+      },
+      "version-mutant": {
+        "result": 1,
+        "wasmSha256": "a6356bb4c592b9f04a61bcfff5fe67f4c26718fcb78e9531abc815ccb575a8e0"
+      }
+    }
+  },
+  "browserChecks": {
+    "status": "PASS",
+    "checks": [
+      "backup-export-import-cancel-restore",
+      "backup-invalid-both-write-failures-conflict",
+      "edit",
+      "multiline-notes-presentation-reload",
+      "add",
+      "remove",
+      "shape",
+      "reorder",
+      "present",
+      "reload",
+      "navigate",
+      "synthetic-composition-with-concurrent-redraw",
+      "oversized-refusal",
+      "concurrent-tab-refusal",
+      "worker-timeout-retry",
+      "hidden-timeout-retry",
+      "worker-interruption-retry",
+      "storage-failure-retry",
+      "multiple-unsaved-fields",
+      "corrupt-refusal",
+      "digest-refusal",
+      "loopback-only"
+    ]
+  },
+  "sessionDraftChecks": {
+    "status": "PASS",
+    "checks": [
+      "same-tab-reload",
+      "explicit-recovery-and-retry",
+      "stale-draft-refusal",
+      "raw-export",
+      "explicit-discard",
+      "malformed-draft-refusal",
+      "recovery-selection-race-refusal",
+      "journal-quota-and-retry",
+      "journal-cleanup-failure",
+      "initial-state-mismatch",
+      "program-digest-mismatch",
+      "journal-read-failure-retry",
+      "empty-journal-read-retry",
+      "loopback-only"
+    ],
+    "limitations": [
+      "sessionStorage only",
+      "not crash or closed-tab durability",
+      "synthetic data"
+    ]
+  },
+  "compatChecks": {
+    "status": "PASS",
+    "checks": [
+      "ZS2 old editor refuses without write",
+      "new editor reopens exact text",
+      "ZS1 multiline upgrade",
+      "CR normalization refusal",
+      "loopback only"
+    ],
+    "scope": "synthetic candidate, no real-user migration or release"
+  },
+  "imeChecks": {
+    "status": "PASS_CDP_SYNTHETIC_IME",
+    "mid": {
+      "value": "日本",
+      "stored": null,
+      "events": [
+        {
+          "type": "compositionstart",
+          "composing": false,
+          "trusted": true
+        },
+        {
+          "type": "compositionupdate",
+          "composing": false,
+          "trusted": true
+        },
+        {
+          "type": "beforeinput",
+          "composing": true,
+          "trusted": true
+        },
+        {
+          "type": "input",
+          "composing": true,
+          "trusted": true
+        }
+      ]
+    },
+    "textarea": "本文\n二行目",
+    "final": {
+      "value": "日本語",
+      "events": [
+        {
+          "type": "compositionstart",
+          "composing": false,
+          "trusted": true
+        },
+        {
+          "type": "compositionupdate",
+          "composing": false,
+          "trusted": true
+        },
+        {
+          "type": "beforeinput",
+          "composing": true,
+          "trusted": true
+        },
+        {
+          "type": "input",
+          "composing": true,
+          "trusted": true
+        },
+        {
+          "type": "compositionupdate",
+          "composing": false,
+          "trusted": true
+        },
+        {
+          "type": "beforeinput",
+          "composing": true,
+          "trusted": true
+        },
+        {
+          "type": "input",
+          "composing": true,
+          "trusted": true
+        },
+        {
+          "type": "compositionend",
+          "composing": false,
+          "trusted": false
+        }
+      ]
+    },
+    "limitations": [
+      "CDP-generated browser events; not a physical OS IME test",
+      "loopback local candidate; not a release"
+    ]
+  },
+  "unloadChecks": {
+    "status": "PASS",
+    "checks": [
+      "activated-dirty-reload-warning",
+      "cancel-retains-input",
+      "retry",
+      "clean-reload-no-warning"
+    ],
+    "limitations": [
+      "browser may suppress beforeunload",
+      "does not provide crash recovery"
+    ]
+  },
+  "notes": [
+    "A prior run of the existing hidden-tab timeout test was flaky: a fast Worker beat the 1ms timer. The rerun explicitly stalls a Worker and uses a shortened timer; it does not qualify natural hidden-tab stalls.",
+    "ZS2 protects multiline snapshots from old single-line candidate writes; ZS1 multiline remains readable by new candidate and upgrades on edit. CR normalization causes refusal without changing saved bytes."
+  ],
+  "limitations": [
+    "512-byte per field, 16 slides, one shape per slide",
+    "CDP synthetic keyboard and IME; physical IME not verified",
+    "synthetic candidate only; no real-user migration, QEMU, PowerPoint compatibility or deployment"
+  ]
+}

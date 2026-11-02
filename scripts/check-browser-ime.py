@@ -21,11 +21,11 @@ try:
   if 'exceptionDetails' in r: raise ValueError(r['exceptionDetails'])
   return r.get('result',{}).get('value')
  def wait(expr,label):
-  end=time.time()+90
+  end=time.time()+30
   while time.time()<end:
    if ev(expr): return
    time.sleep(.2)
-  raise TimeoutError(label+': '+str(ev("document.getElementById('status')?.textContent")))
+  raise TimeoutError(label+': '+str(ev("({status:document.getElementById('status')?.textContent,body:document.querySelector('[data-k=body]')?.value})")))
  wait("document.querySelector('[data-k=title]') !== null",'initial')
  ev("(()=>{let e=document.querySelector('[data-k=title]');window.imeEvents=[];for(const t of ['compositionstart','compositionupdate','compositionend','beforeinput','input'])e.addEventListener(t,x=>window.imeEvents.push({type:x.type,composing:!!x.isComposing,trusted:x.isTrusted}));e.focus();e.select();})()")
  pipe.call('Input.imeSetComposition',{'text':'日本','selectionStart':2,'selectionEnd':2},session)
@@ -35,7 +35,20 @@ try:
  if mid['stored'] is not None: raise ValueError('uncommitted composition saved')
  pipe.call('Input.insertText',{'text':'日本語'},session)
  wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('日本語') && document.getElementById('status').textContent === '保存しました'",'committed IME')
- result={'status':'PASS_CDP_SYNTHETIC_IME','mid':mid,'final':{'value':ev("document.querySelector('[data-k=title]').value"),'events':ev('window.imeEvents')},'limitations':['CDP-generated browser events; not a physical OS IME test','loopback local candidate; not a release']}
+ # Exercise the multiline editor with CDP composition and an actual Enter key.
+ ev("document.querySelector('[data-k=body]').focus()")
+ pipe.call('Input.imeSetComposition',{'text':'本文','selectionStart':2,'selectionEnd':2},session)
+ wait("document.querySelector('[data-k=body]')?.value==='本文'",'textarea composition')
+ if ev("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('本文')"): raise ValueError('uncommitted textarea composition saved')
+ pipe.call('Input.insertText',{'text':'本文'},session)
+ wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('本文') && document.getElementById('status').textContent==='保存しました'",'textarea IME commit')
+ ev("document.querySelector('[data-k=body]').focus();document.querySelector('[data-k=body]').setSelectionRange(2,2)")
+ pipe.call('Input.dispatchKeyEvent',{'type':'keyDown','key':'Enter','code':'Enter','text':'\r','unmodifiedText':'\r','windowsVirtualKeyCode':13,'nativeVirtualKeyCode':13},session)
+ pipe.call('Input.dispatchKeyEvent',{'type':'keyUp','key':'Enter','code':'Enter','windowsVirtualKeyCode':13,'nativeVirtualKeyCode':13},session)
+ wait("document.querySelector('[data-k=body]')?.value === '本文\\n' && document.getElementById('status').textContent==='保存しました'",'textarea enter')
+ pipe.call('Input.insertText',{'text':'二行目'},session)
+ wait("document.querySelector('[data-k=body]')?.value==='本文\\n二行目' && localStorage.getItem('itonami.zuhyo.candidate.zs1')?.startsWith('ZS2|') && document.getElementById('status').textContent==='保存しました'",'textarea multiline saved')
+ result={'status':'PASS_CDP_SYNTHETIC_IME','mid':mid,'textarea':ev("document.querySelector('[data-k=body]').value"),'final':{'value':ev("document.querySelector('[data-k=title]').value"),'events':ev('window.imeEvents')},'limitations':['CDP-generated browser events; not a physical OS IME test','loopback local candidate; not a release']}
  if result['final']['value'] != '日本語': raise ValueError('composition commit mismatch')
  requests=[e['params']['request']['url'] for e in pipe.events if e.get('method')=='Network.requestWillBeSent']
  if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected network request')
