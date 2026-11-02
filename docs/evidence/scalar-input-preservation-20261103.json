@@ -1,0 +1,116 @@
+{
+  "status": "PASS_BROWSER_SCALAR_INPUT_REGRESSION",
+  "app": "zuhyo",
+  "sourceBaseCommit": "d90e0a547a44960943c546a9726c4513c66e382e",
+  "browserAdapterSha256": "8ec99d68d2645ce87dfdd5a3ffbe69dfc23f1cb227de0943c7674698d3ecf421",
+  "observerSha256": "6f81770785ad486c366a26b9624454e38cb25eae50897de9f4fb4a99b41728b6",
+  "previousAdapterSha256": "0d7ac38d92323f358579cc3e25f157f9c569143eb58b774e8ac24abc50e19f20",
+  "candidateReceipt": {
+    "wasmSha256": "59d50c9adbebfae912da432ebd330b9011739eea7a4d5217c7ce83773dbc1bd9",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "38ea36c2a39d90346e59c3df21141862a450fd4f871bfd169b1426d19899f917",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab",
+    "draftPolicyRevision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+    "draftPolicySourceSha256": "8888ad0d88e8f954b5b1cd4fa0d3da62ac13e906f9410866cfd9dec6112f11f2",
+    "draftPolicyWasmSha256": "baa17f80e3ce7ce32b86086606168846454ca547842359251b50b911d4b89e42"
+  },
+  "previousCandidateReceipt": {
+    "wasmSha256": "59d50c9adbebfae912da432ebd330b9011739eea7a4d5217c7ce83773dbc1bd9",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "38ea36c2a39d90346e59c3df21141862a450fd4f871bfd169b1426d19899f917",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab",
+    "draftPolicyRevision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+    "draftPolicySourceSha256": "8888ad0d88e8f954b5b1cd4fa0d3da62ac13e906f9410866cfd9dec6112f11f2",
+    "draftPolicyWasmSha256": "baa17f80e3ce7ce32b86086606168846454ca547842359251b50b911d4b89e42"
+  },
+  "previousCandidateHighSurrogate": {
+    "changed": true,
+    "containsReplacement": true,
+    "fieldPreserved": false,
+    "status": "保存しました"
+  },
+  "previousBunshoControl": "same regression observer exits 1: invalid input was persisted",
+  "tests": {
+    "test": {
+      "sha256": "5df1da7eddbfe832d8da39ae9d38c16415fc47d3f3ac08de9f8215e8aef95cef",
+      "result": {
+        "status": "PASS_BROWSER_SCALAR_INPUT",
+        "app": "zuhyo",
+        "checks": [
+          "lone-high-and-low-refused",
+          "storage-unchanged",
+          "draft-and-field-preserved",
+          "retry-refused",
+          "valid-supplementary-and-replacement-character-saved"
+        ],
+        "scope": "synthetic Chrome; no real user data or crash durability"
+      }
+    },
+    "session": {
+      "sha256": "cd256a4c1824aada7a2fb2d725b785802a632f9d37a70608d8d0201ad62786e1",
+      "result": {
+        "status": "PASS",
+        "checks": [
+          "same-tab-reload",
+          "explicit-recovery-and-retry",
+          "stale-draft-refusal",
+          "raw-export",
+          "explicit-discard",
+          "malformed-draft-refusal",
+          "recovery-selection-race-refusal",
+          "journal-quota-and-retry",
+          "journal-cleanup-failure",
+          "initial-state-mismatch",
+          "program-digest-mismatch",
+          "journal-read-failure-retry",
+          "empty-journal-read-retry",
+          "surrogate-preserved",
+          "33-entry-preview",
+          "pending-discard-race",
+          "loopback-only"
+        ],
+        "limitations": [
+          "sessionStorage only",
+          "not crash or closed-tab durability",
+          "synthetic data"
+        ]
+      }
+    },
+    "ui": {
+      "sha256": "7a53bafa1a7db8d40aa4cd85caf219fba25c3add2e8c91e8c25ac4eb270be885",
+      "result": {
+        "status": "PASS",
+        "checks": [
+          "backup-export-import-cancel-restore",
+          "backup-invalid-both-write-failures-conflict",
+          "edit",
+          "multiline-notes-presentation-reload",
+          "add",
+          "remove",
+          "shape",
+          "reorder",
+          "present",
+          "reload",
+          "navigate",
+          "synthetic-composition-with-concurrent-redraw",
+          "oversized-refusal",
+          "concurrent-tab-refusal",
+          "worker-timeout-retry",
+          "hidden-timeout-retry",
+          "worker-interruption-retry",
+          "storage-failure-retry",
+          "multiple-unsaved-fields",
+          "corrupt-refusal",
+          "digest-refusal",
+          "policy-digest-refusal",
+          "loopback-only"
+        ]
+      }
+    }
+  },
+  "scope": "synthetic Chrome loopback; not real user data, OS, QEMU, crash durability, public delivery or release"
+}

@@ -239,6 +239,12 @@ async function dispatch(event) {
   if (draftBlocked) { fail('前回の未保存データを確認してください。'); return; }
   if (event.type === 'input' && edits.get(key)?.sequence !== event.sequence) return;
   if (event.type === 'click' && edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
+  // TextEncoder replaces lone UTF-16 surrogates. Refuse before encoding so
+  // the original unsaved input and session journal remain available.
+  if (!scalarString(key) || !scalarString(value)) {
+    failEdit(event, '入力に不正な文字があります。');
+    return;
+  }
   if (encoder.encode(key).length > 128 || encoder.encode(value).length > 512) {
     failEdit(event, '入力が長すぎます。');
     return;
