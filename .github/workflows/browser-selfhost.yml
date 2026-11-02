@@ -1,0 +1,88 @@
+name: Browser selfhost candidate
+on:
+  pull_request:
+    paths:
+      - 'browser/**'
+      - 'src/**'
+      - 'scripts/**'
+      - 'appview/slides-mcp-component/client-runtime.pin.json'
+      - 'appview/slides-mcp-component/cljs/public/.well-known/did.json'
+      - '.github/workflows/browser-selfhost.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Amu selfhost Wasm build
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Fetch pinned build inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          root="$RUNNER_TEMP/office-inputs"
+          mkdir -p "$root"
+          git init -q "$root/amu"
+          git -C "$root/amu" remote add origin https://github.com/kotoba-lang/amu.git
+          git -C "$root/amu" sparse-checkout init --no-cone
+          git -C "$root/amu" sparse-checkout set --no-cone '/scripts/seed/check-aiueos-user-macos-native.py' '/scripts/seed/check-wasm32-browser.py' '/runtime/wasm32-browser-static-host.js' '/seed/bootstrap/aarch64-macos/amu-full-root.macho'
+          git -C "$root/amu" fetch --quiet --depth=1 --filter=blob:none origin 068dcbef96a549517ed31cc5727ce7e4f67279fc
+          git -C "$root/amu" checkout --quiet --detach FETCH_HEAD
+          printf '%s  %s\n' '2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536' "$root/amu/seed/bootstrap/aarch64-macos/amu-full-root.macho" | shasum -a 256 -c -
+          git init -q "$root/broker"
+          git -C "$root/broker" fetch --quiet --depth=1 --filter=blob:none https://github.com/kotoba-lang/wasm-webcomponent.git e00ae75e1c589f76b4f53a88a5e3256c98c9e162
+          git init -q "$root/policy"
+          git -C "$root/policy" fetch --quiet --depth=1 --filter=blob:none https://github.com/kotoba-lang/kotoba.git 26da503693359e3e7d544b50b97cae1c5cf6041e
+          git init -q "$root/storage"
+          git -C "$root/storage" fetch --quiet --depth=1 --filter=blob:none https://github.com/cloud-itonami/app-itonami-bunsho.git d569c4cc7e884c58dc5867c38731c9465bac70dc
+      - name: Compile Wasm and package test inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/office-inputs"
+          payload="$RUNNER_TEMP/office-payload"
+          mkdir -p "$payload/amu/scripts/seed"
+          python3 scripts/build-browser.py "$root/amu" "$root/broker" "$root/policy" "$root/storage" "$payload/build"
+          cp "$root/amu/scripts/seed/check-wasm32-browser.py" "$payload/amu/scripts/seed/"
+          mkdir -p "$payload/shared"
+          git -C "$root/storage" show d569c4cc7e884c58dc5867c38731c9465bac70dc:scripts/check-office-corrupt-recovery.py > "$payload/shared/check-office-corrupt-recovery.py"
+          git -C "$root/storage" show d569c4cc7e884c58dc5867c38731c9465bac70dc:scripts/office_candidate_integrity.py > "$payload/shared/office_candidate_integrity.py"
+          PAYLOAD="$payload" python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          root = Path(os.environ['PAYLOAD'])
+          paths = sorted(p for p in root.rglob('*') if p.is_file())
+          (root / 'manifest.sha256').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.relative_to(root).as_posix() + '\n' for p in paths))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: zuhyo-browser-candidate
+          path: ${{ runner.temp }}/office-payload
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+  browser:
+    name: Synthetic Chrome storage and recovery
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: zuhyo-browser-candidate
+          path: ${{ runner.temp }}/office-payload
+      - name: Verify artifact and exercise storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload="$RUNNER_TEMP/office-payload"
+          (cd "$payload" && sha256sum -c manifest.sha256)
+          PYTHONPATH="$payload/shared" python3 -c 'import sys; from office_candidate_integrity import validate; validate(sys.argv[1], "zuhyo")' "$payload/build"
+          chrome="$(command -v google-chrome)"
+          test -n "$chrome"
+          python3 scripts/check-browser-idb-ui.py "$payload/amu" "$payload/build" "$RUNNER_TEMP/office-ui" "$chrome"
+          python3 "$payload/shared/check-office-corrupt-recovery.py" "$payload/amu" "$payload/build" "$RUNNER_TEMP/office-corrupt" "$chrome" zuhyo
+          python3 scripts/check-browser-idb-restart.py "$payload/amu" "$payload/build" "$RUNNER_TEMP/office-extra" "$chrome"
