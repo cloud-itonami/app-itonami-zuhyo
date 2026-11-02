@@ -70,7 +70,7 @@ try:
  evaluate("(()=>{let e=document.querySelector('[data-k=notes]');e.value="+json.dumps(notes_text,ensure_ascii=False)+";e.dispatchEvent(new Event('input',{bubbles:true}));})()")
  wait("JSON.parse(sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')||'{}').entries?.some(e=>e[0]==='notes' && e[1]==="+json.dumps(notes_text,ensure_ascii=False)+")",'multiline draft journal')
  if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")!=saved or not evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')?.includes('未保存A')"): raise ValueError('journal not created safely')
- reload_accept();wait("!document.getElementById('draft-recovery').hidden",'recoverable draft')
+ reload_accept();wait("!document.getElementById('draft-recovery').hidden && !document.getElementById('draft-restore').disabled",'recoverable draft')
  if evaluate("document.getElementById('draft-restore').disabled") or not evaluate("document.getElementById('app').inert && [...document.querySelectorAll('#app input,#app textarea,#app button')].every(e=>e.disabled)"): raise ValueError('matching draft not offered safely')
  if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")!=saved: raise ValueError('recovery auto-saved')
  evaluate("document.getElementById('draft-restore').click()")
@@ -84,7 +84,7 @@ try:
  other=pipe.call('Target.createTarget',{'url':url})['targetId'];second=pipe.call('Target.attachToTarget',{'targetId':other,'flatten':True})['sessionId'];pipe.call('Page.enable',{},second);wait("document.querySelector('[data-k=title]') !== null",'other tab',second)
  if evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')",second) is not None: raise ValueError('test tab inherited draft')
  type_('他タブ保存',second);wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('他タブ保存')",'other tab saved',second)
- other_saved=evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')");activate();reload_accept();wait("!document.getElementById('draft-recovery').hidden",'stale draft')
+ other_saved=evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')");activate();reload_accept();wait("!document.getElementById('draft-recovery').hidden && !document.getElementById('draft-message').textContent.includes('確認しています')",'stale draft')
  if not evaluate("document.getElementById('draft-restore').disabled") or not evaluate("document.getElementById('app').inert"): raise ValueError('stale draft could overwrite')
  if evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')")!=raw or evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")!=other_saved: raise ValueError('stale draft altered')
  evaluate("document.getElementById('draft-download').click()")
@@ -126,7 +126,7 @@ try:
  pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard leftover')
  # A journal from different Wasm must not be applied even when saved bytes match.
  evaluate("sessionStorage.setItem('itonami.zuhyo.candidate.zs1.session-draft.v1',JSON.stringify({version:1,program:'0'.repeat(64),base:localStorage.getItem('itonami.zuhyo.candidate.zs1'),baseState:localStorage.getItem('itonami.zuhyo.candidate.zs1'),entries:[['title','異なる版']]}));window.__oldDocument=true")
- pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','new document for program mismatch');wait("!document.getElementById('draft-recovery').hidden",'program mismatch')
+ pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','new document for program mismatch');wait("!document.getElementById('draft-recovery').hidden && !document.getElementById('draft-message').textContent.includes('確認しています')",'program mismatch')
  if not evaluate("document.getElementById('draft-restore').disabled") or evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")!=cleanup_saved: raise ValueError('different program journal accepted')
  pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard different-program draft')
  # A new unsaved document must match the exact initialized state, not just a null storage key.
@@ -134,8 +134,27 @@ try:
  pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','new document for initial-state mismatch');wait("!document.getElementById('draft-recovery').hidden",'initial-state mismatch')
  if not evaluate("document.getElementById('draft-restore').disabled") or evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") is not None: raise ValueError('different initialized state accepted')
  pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard mismatched initial draft')
+ # A lone surrogate is preserved as raw JSON and never sent through TextEncoder.
+ evaluate("localStorage.setItem('itonami.zuhyo.candidate.zs1',"+json.dumps(cleanup_saved,ensure_ascii=False)+");sessionStorage.setItem('itonami.zuhyo.candidate.zs1.session-draft.v1',JSON.stringify({version:1,program:"+json.dumps(program_sha)+",base:localStorage.getItem('itonami.zuhyo.candidate.zs1'),baseState:localStorage.getItem('itonami.zuhyo.candidate.zs1'),entries:[['title',String.fromCharCode(0xd800)]]}));window.__oldDocument=true")
+ surrogate_raw=evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')")
+ pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','reload lone surrogate');wait("!document.getElementById('draft-recovery').hidden && !document.getElementById('draft-message').textContent.includes('確認しています')",'surrogate refused')
+ if not evaluate("document.getElementById('draft-restore').disabled && document.getElementById('draft-preview').textContent.includes('形式を確認できない')") or evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')")!=surrogate_raw: raise ValueError('surrogate draft altered or accepted')
+ pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard surrogate')
+ # A valid 33-entry record remains previewable even when most keys are not visible.
+ evaluate("sessionStorage.setItem('itonami.zuhyo.candidate.zs1.session-draft.v1',JSON.stringify({version:1,program:"+json.dumps(program_sha)+",base:localStorage.getItem('itonami.zuhyo.candidate.zs1'),baseState:localStorage.getItem('itonami.zuhyo.candidate.zs1'),entries:[['title','original'],...Array.from({length:32},(_,i)=>['other-'+i,'x'])]}));window.__oldDocument=true")
+ pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','reload 33 entries');wait("document.getElementById('draft-preview').textContent.includes('other-31')",'33-entry preview')
+ if not evaluate("document.getElementById('draft-restore').disabled && document.getElementById('app').inert"): raise ValueError('nonvisible 33-entry draft accepted')
+ pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard 33-entry draft')
+ # A late worker verdict must not reopen or apply a discarded draft.
+ delayed=pipe.call('Page.addScriptToEvaluateOnNewDocument',{'source':"{const original=Worker.prototype.postMessage;Worker.prototype.postMessage=function(m){if(m?.args?.[0]==='classify'){setTimeout(()=>original.call(this,m),2000);return}return original.call(this,m)}}"},session)['identifier']
+ evaluate("sessionStorage.setItem('itonami.zuhyo.candidate.zs1.session-draft.v1',JSON.stringify({version:1,program:"+json.dumps(program_sha)+",base:localStorage.getItem('itonami.zuhyo.candidate.zs1'),baseState:localStorage.getItem('itonami.zuhyo.candidate.zs1'),entries:[['title','delayed']]}));window.__oldDocument=true")
+ pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','reload delayed draft');wait("!document.getElementById('draft-recovery').hidden && document.getElementById('draft-message').textContent.includes('確認しています')",'pending verdict')
+ if not evaluate("document.getElementById('draft-restore').disabled && document.getElementById('app').inert"): raise ValueError('pending verdict unlocked editor')
+ pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard pending draft');time.sleep(3)
+ if not evaluate("document.getElementById('draft-recovery').hidden && !document.getElementById('app').inert") or evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')") is not None or evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")!=cleanup_saved: raise ValueError('late verdict altered discarded draft')
+ pipe.call('Page.removeScriptToEvaluateOnNewDocument',{'identifier':delayed},session)
  requests=[e['params']['request']['url'] for e in pipe.events if e.get('method')=='Network.requestWillBeSent']
  if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected request')
- (out/'result.json').write_text(json.dumps({'status':'PASS','checks':['same-tab-reload','explicit-recovery-and-retry','stale-draft-refusal','raw-export','explicit-discard','malformed-draft-refusal','recovery-selection-race-refusal','journal-quota-and-retry','journal-cleanup-failure','initial-state-mismatch','program-digest-mismatch','journal-read-failure-retry','empty-journal-read-retry','loopback-only'],'limitations':['sessionStorage only','not crash or closed-tab durability','synthetic data']},indent=2)+'\n');print('PASS_BROWSER_SESSION_DRAFT')
+ (out/'result.json').write_text(json.dumps({'status':'PASS','checks':['same-tab-reload','explicit-recovery-and-retry','stale-draft-refusal','raw-export','explicit-discard','malformed-draft-refusal','recovery-selection-race-refusal','journal-quota-and-retry','journal-cleanup-failure','initial-state-mismatch','program-digest-mismatch','journal-read-failure-retry','empty-journal-read-retry','surrogate-preserved','33-entry-preview','pending-discard-race','loopback-only'],'limitations':['sessionStorage only','not crash or closed-tab durability','synthetic data']},indent=2)+'\n');print('PASS_BROWSER_SESSION_DRAFT')
 finally:
  pipe.close();server.shutdown();server.server_close()

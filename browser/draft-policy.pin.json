@@ -1,0 +1,13 @@
+{
+  "revision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+  "sources": [
+    {
+      "path": "lib/kotoba.aiueos/os/aiueos/kotoba/aiueos/draft_policy.kotoba",
+      "sha256": "2aaee7760f6c1e8b6ff7532b31df86d1b7fec434d4f91c7fa7520f10a0bbf675"
+    },
+    {
+      "path": "lib/kotoba.aiueos/os/aiueos/kotoba/aiueos/draft_policy_browser.kotoba",
+      "sha256": "99c5e077452200a8b95fe64322a3e985d19c48abdceda3278d04dc7d4ce45de1"
+    }
+  ]
+}

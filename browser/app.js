@@ -1,5 +1,5 @@
 import { clientRuntimeProblems, clientRuntimeConnectSrc } from './kotoba-client-runtime.js';
-import { descriptor, wasmBase64, wasmSha256 } from './bundle.js';
+import { descriptor, wasmBase64, wasmSha256, draftPolicyBase64, draftPolicySha256 } from './bundle.js';
 
 const status = document.getElementById('status');
 const mount = document.getElementById('app');
@@ -8,7 +8,7 @@ const draftNotice = document.getElementById('draft-notice');
 const draftPanel = document.getElementById('draft-recovery');
 const draftRestore = document.getElementById('draft-restore');
 let draftBlocked = false, recoveryRaw = null, recoveryItems = null, lockedControls = [];
-let draftReadFailed = false, retryDraftAllowed = false;
+let draftReadFailed = false, retryDraftAllowed = false, draftGeneration = 0;
 const edits = new Map();
 const composing = new Set();
 let deferredRender = null;
@@ -24,7 +24,7 @@ const backupPreview = document.getElementById('backup-preview');
 let proposedBackup = null, proposedBase = null, proposedPersisted = null;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
-let bytes, compiledModule, snapshot, persisted;
+let bytes, compiledModule, compiledDraftPolicy, snapshot, persisted;
 let pending = Promise.resolve();
 window.addEventListener('beforeunload', e => {
   if (edits.size || draftBlocked) { e.preventDefault(); e.returnValue = ''; }
@@ -49,24 +49,55 @@ function unlockDraftMount() {
   lockedControls = [];
   mount.inert = false;
 }
-function offerDraft(raw, allowRestore) {
+function scalarString(s) {
+  if (typeof s !== 'string') return false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      if (++i >= s.length) return false;
+      const d = s.charCodeAt(i);
+      if (d < 0xdc00 || d > 0xdfff) return false;
+    } else if (c >= 0xdc00 && c <= 0xdfff) return false;
+  }
+  return true;
+}
+async function offerDraft(raw, allowRestore) {
+  const generation = ++draftGeneration;
   recoveryRaw = raw; recoveryItems = null; draftBlocked = true; mount.inert = true;
   document.getElementById('draft-retry-read').hidden = true;
   document.getElementById('draft-download').disabled = false;
   document.getElementById('draft-discard').disabled = false;
   lockedControls = [...mount.querySelectorAll('input,textarea,button')].map(el => [el, el.disabled]);
   for (const [el] of lockedControls) el.disabled = true;
+  draftRestore.disabled = true;
+  document.getElementById('draft-message').textContent = '未保存データを確認しています。';
+  document.getElementById('draft-preview').textContent = '';
+  draftPanel.hidden = false;
   let data = null;
   try { if (raw.length <= 1000000) data = JSON.parse(raw); } catch (_) {}
-  const seen = new Set();
-  const inputs = new Set([...mount.querySelectorAll('input[data-k],textarea[data-k]')].map(el => el.dataset.k));
-  const valid = data && data.version === 1 && typeof data.program === 'string' && /^[0-9a-f]{64}$/.test(data.program) && (data.base === null || typeof data.base === 'string') &&
-    typeof data.baseState === 'string' && data.baseState.length <= LIMIT && Array.isArray(data.entries) && data.entries.length > 0 && data.entries.length <= 33 &&
-    data.entries.every(entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' &&
-      typeof entry[1] === 'string' && entry[0].length <= 128 && entry[1].length <= 65536 &&
-      !seen.has(entry[0]) && (seen.add(entry[0]), true));
+  const inputs = [...mount.querySelectorAll('input[data-k],textarea[data-k]')].map(el => el.dataset.k);
+  // JSON shape and Unicode are transport checks. The Wasm policy decides
+  // bounds, duplicates, snapshot equality and whether restoration is safe.
+  const shaped = data && data.version === 1 && scalarString(data.program) &&
+    (data.base === null || scalarString(data.base)) && scalarString(data.baseState) &&
+    Array.isArray(data.entries) && data.entries.length <= 33 &&
+    data.entries.every(entry => Array.isArray(entry) && entry.length === 2 && scalarString(entry[0]) && scalarString(entry[1])) &&
+    (persisted === null || scalarString(persisted)) && scalarString(snapshot) && inputs.every(scalarString) && inputs.length <= 512;
+  let verdict = 0;
+  if (shaped && compiledDraftPolicy) {
+    const wire = inputs.map(key => encoder.encode(key).length + ':' + key).join('');
+    const args = ['classify', String(raw.length), String(LIMIT), allowRestore ? '1' : '0', wasmSha256,
+      persisted === null ? 'null' : 'string', persisted ?? '', snapshot, data.program,
+      data.base === null ? 'null' : 'string', data.base ?? '', data.baseState, String(data.entries.length),
+      ...data.entries.flat(), String(inputs.length), wire];
+    try {
+      const result = await run(args, compiledDraftPolicy);
+      if (/^[012]\n$/.test(result)) verdict = Number(result[0]);
+    } catch (_) {}
+  }
+  if (generation !== draftGeneration || !draftBlocked || recoveryRaw !== raw) return;
+  const valid = verdict > 0, matches = verdict === 2;
   if (valid) recoveryItems = data.entries;
-  const matches = !!(allowRestore && valid && data.program === wasmSha256 && data.base === persisted && data.baseState === snapshot && data.entries.every(entry => inputs.has(entry[0])));
   draftRestore.disabled = !matches;
   document.getElementById('draft-message').textContent = matches
     ? '前回の未保存入力です。内容を確認して画面に戻し、再保存してください。'
@@ -114,7 +145,7 @@ document.getElementById('draft-discard').addEventListener('click', () => {
   if (!draftBlocked || draftReadFailed || !window.confirm('このタブの未保存データを破棄しますか？')) return;
   try { sessionStorage.removeItem(DRAFT_KEY); }
   catch (_) { draftWarning('未保存データを破棄できません。'); return; }
-  draftBlocked = false; recoveryRaw = null; recoveryItems = null; draftPanel.hidden = true; unlockDraftMount();
+  draftGeneration++; draftBlocked = false; recoveryRaw = null; recoveryItems = null; draftPanel.hidden = true; unlockDraftMount();
   try {
     fail(localStorage.getItem(KEY) === persisted ? '未保存データを破棄しました。' : '未保存データを破棄しました。別のタブの変更を開くため再読込してください。');
   } catch (_) { fail('未保存データを破棄しました。保存済み内容を確認できません。'); }
@@ -169,7 +200,7 @@ function parseTree(wire) {
   if (pos !== data.length - 1) throw Error('view trailing data');
   return tree;
 }
-function run(args) {
+function run(args, module = compiledModule) {
   return new Promise((resolve, reject) => {
     const worker = new Worker('./worker.js');
     const timer = setTimeout(() => { worker.terminate(); reject(Error('worker timeout')); }, 30000);
@@ -179,7 +210,7 @@ function run(args) {
       else resolve(data.output);
     };
     worker.onerror = () => { clearTimeout(timer); worker.terminate(); reject(Error('worker failed')); };
-    worker.postMessage({ module: compiledModule, fuel: 25000000, allow: [37, 38], args });
+    worker.postMessage({ module, fuel: 25000000, allow: [37, 38], args });
   });
 }
 function refreshRetry() { retrySave.hidden = ![...edits.values()].some(edit => edit.failed); }
@@ -375,6 +406,10 @@ async function start() {
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
   if (digest !== wasmSha256) throw Error('artifact digest');
   compiledModule = await WebAssembly.compile(bytes);
+  const policyBytes = Uint8Array.from(atob(draftPolicyBase64), c => c.charCodeAt(0));
+  const policyDigest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', policyBytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+  if (policyDigest !== draftPolicySha256) throw Error('draft policy digest');
+  compiledDraftPolicy = await WebAssembly.compile(policyBytes);
   const saved = localStorage.getItem(KEY);
   persisted = saved;
   if (saved !== null) {
