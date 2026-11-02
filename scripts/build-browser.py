@@ -59,6 +59,14 @@ policy_source = (parts[0].replace(policy_ns, '(ns aiueos.draft-policy-browser (:
 (out / 'draft-policy.kotoba').write_text(policy_source, encoding='utf-8')
 mac.native_run(compiler, out, 'compile', 'draft-policy.kotoba', '--target', 'wasm32-browser', '--output', 'draft-policy.wasm')
 policy_wasm = (out / 'draft-policy.wasm').read_bytes()
+# Preserve the already tracked static DID document at its did:web path.
+# This document has no verification methods and does not prove key control.
+did = (root / 'appview/slides-mcp-component/cljs/public/.well-known/did.json').read_bytes()
+did_document = json.loads(did)
+if did_document.get('id') != 'did:web:zuhyo.itonami.app' or did_document.get('@context') != ['https://www.w3.org/ns/did/v1']:
+    raise SystemExit('unexpected static DID document')
+(out / '.well-known').mkdir()
+(out / '.well-known/did.json').write_bytes(did)
 desc = {'schema': 'kotoba.app.client-runtime.v1', 'target': 'browser', 'profile': 'trusted-page-v1',
         'entry': 'index.html', 'local-state': {'adapter': 'localstorage', 'schema': 'itonami.zuhyo.candidate.zs1', 'version': 1},
         'workers': [{'id': 'zuhyo-worker', 'entry': 'worker.js', 'protocol': 'wasm32-browser-static.v1'}], 'operations': []}
@@ -73,6 +81,7 @@ receipt = {'wasmSha256': hashlib.sha256(wasm).hexdigest(), 'compilerSha256': has
            'sourceSha256': hashlib.sha256(source.encode()).hexdigest(), 'brokerRevision': pin['revision'], 'brokerSha256': pin['sha256'],
            'workerSha256': hashlib.sha256((out / 'worker.js').read_bytes()).hexdigest(),
            'draftPolicyRevision': policy_pin['revision'], 'draftPolicySourceSha256': hashlib.sha256(policy_source.encode()).hexdigest(),
-           'draftPolicyWasmSha256': hashlib.sha256(policy_wasm).hexdigest()}
+           'draftPolicyWasmSha256': hashlib.sha256(policy_wasm).hexdigest(),
+           'didSha256': hashlib.sha256(did).hexdigest()}
 (out / 'build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
 print('BUILT_ZUHYO_BROWSER_CANDIDATE', out)
