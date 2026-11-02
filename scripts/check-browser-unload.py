@@ -44,7 +44,9 @@ try:
  if ev("document.querySelector('[data-k=title]')?.value")!='未保存' or ev("localStorage.getItem('itonami.zuhyo.candidate.zs1')")!=saved: raise ValueError('cancelled reload lost state')
  ev("Storage.prototype.setItem=window.testSetter;document.getElementById('retry-save').click()")
  wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('未保存') && document.getElementById('retry-save').hidden",'retry save')
+ ev("window.__cleanReloadMarker = true")
  mark=len(pipe.events);pipe.call('Page.reload',{},session)
+ wait("window.__cleanReloadMarker !== true",'new document after clean reload')
  wait("document.querySelector('[data-k=title]')?.value === '未保存'",'clean reload')
  if any(e.get('method')=='Page.javascriptDialogOpening' and e.get('params',{}).get('type')=='beforeunload' for e in pipe.events[mark:]): raise ValueError('clean reload warned')
  requests=[e['params']['request']['url'] for e in pipe.events if e.get('method')=='Network.requestWillBeSent']
