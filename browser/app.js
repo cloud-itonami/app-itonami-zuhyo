@@ -5,6 +5,8 @@ const status = document.getElementById('status');
 const mount = document.getElementById('app');
 const retrySave = document.getElementById('retry-save');
 const edits = new Map();
+const composing = new Set();
+let deferredRender = null;
 let editSequence = 0;
 const KEY = 'itonami.zuhyo.candidate.zs1';
 const LIMIT = 35000;
@@ -67,6 +69,8 @@ function run(args) {
 }
 function refreshRetry() { retrySave.hidden = ![...edits.values()].some(edit => edit.failed); }
 function render(tree, focus) {
+  if (composing.size) { deferredRender = { tree, focus }; return; }
+  deferredRender = null;
   mount.replaceChildren(tree);
   for (const node of mount.querySelectorAll('input[data-k]')) {
     const edit = edits.get(node.dataset.k);
@@ -115,20 +119,47 @@ async function dispatch(event) {
     failEdit(event, '保存できませんでした。' + reason);
   }
 }
+function captureInput(el) {
+  const key = el.dataset.k, value = el.value, sequence = ++editSequence;
+  edits.set(key, { value, sequence, failed: false });
+  refreshRetry();
+  return { key, value, sequence, focus: { key, start: el.selectionStart, end: el.selectionEnd }, type: 'input' };
+}
+mount.addEventListener('compositionstart', e => {
+  const el = e.target.closest('input[data-k]');
+  if (!el || !mount.contains(el)) return;
+  composing.add(el.dataset.k);
+  captureInput(el);
+});
+mount.addEventListener('compositionend', e => {
+  const el = e.target.closest('input[data-k]');
+  if (!el || !mount.contains(el) || !composing.has(el.dataset.k)) return;
+  const captured = captureInput(el);
+  composing.delete(el.dataset.k);
+  pending = pending.then(() => dispatch(captured));
+  // Let the browser deliver any final non-composing input before replacing DOM.
+  if (!composing.size && deferredRender) {
+    deferredRender.focus = captured.focus;
+    setTimeout(() => { if (!composing.size && deferredRender) render(deferredRender.tree, deferredRender.focus); }, 0);
+  }
+});
 for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   // Capture the target and value before an earlier queued render replaces it.
   const el = e.target.closest('[data-k]');
   if (!el || !mount.contains(el) || (e.type === 'input' && el.tagName !== 'INPUT')
       || (e.type === 'click' && el.tagName !== 'BUTTON')) return;
   const key = el.dataset.k, value = e.type === 'input' ? el.value : '';
+  if (e.type === 'input') {
+    if (e.isComposing) composing.add(key);
+    const captured = captureInput(el);
+    if (!composing.has(key)) pending = pending.then(() => dispatch(captured));
+    return;
+  }
   if (e.type === 'click' && key.startsWith('backup-') && edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
   if (e.type === 'click' && key === 'backup-import') { backupFile.value = ''; backupFile.click(); return; }
   if (e.type === 'click' && key === 'backup-export') { pending = pending.then(exportBackup); return; }
   if (e.type === 'click' && key === 'backup-restore') { pending = pending.then(restoreBackup); return; }
-  const focus = e.type === 'input' ? { key, start: el.selectionStart, end: el.selectionEnd } : null;
-  const sequence = e.type === 'input' ? ++editSequence : 0;
-  if (e.type === 'input') { edits.set(key, { value, sequence, failed: false }); refreshRetry(); }
-  const captured = { key, value, focus, type: e.type, sequence };
+  const captured = { key, value, focus: null, type: e.type, sequence: 0 };
   pending = pending.then(() => dispatch(captured));
 });
 retrySave.addEventListener('click', () => {
