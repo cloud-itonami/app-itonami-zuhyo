@@ -98,7 +98,8 @@ async function dispatch(event) {
 for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   // Capture the target and value before an earlier queued render replaces it.
   const el = e.target.closest('[data-k]');
-  if (!el || !mount.contains(el) || (e.type === 'input' && el.tagName !== 'INPUT')) return;
+  if (!el || !mount.contains(el) || (e.type === 'input' && el.tagName !== 'INPUT')
+      || (e.type === 'click' && el.tagName !== 'BUTTON')) return;
   const key = el.dataset.k, value = e.type === 'input' ? el.value : '';
   const focus = e.type === 'input' ? { key, start: el.selectionStart, end: el.selectionEnd } : null;
   const captured = { key, value, focus, type: e.type };

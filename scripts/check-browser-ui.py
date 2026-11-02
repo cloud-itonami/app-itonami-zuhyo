@@ -41,6 +41,9 @@ try:
     def input_(key, text):
         evaluate("(()=>{let e=document.querySelector('[data-k="+key+"]');e.value="+json.dumps(text,ensure_ascii=False)+";e.dispatchEvent(new Event('input',{bubbles:true}));})()")
     wait("document.querySelector('[data-k=heading]') !== null", 'initial slide')
+    evaluate("document.querySelector('[data-k=heading]').click()")
+    time.sleep(1)
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") is not None: raise ValueError('focusing input wrote state')
     input_('heading', '第一😀')
     wait("document.querySelector('[data-k=heading]')?.value === '第一😀' && document.getElementById('status').textContent === '保存しました'", 'first heading')
     input_('notes', '発表者メモ')
