@@ -1,0 +1,150 @@
+{
+  "date": "2026-11-03",
+  "buildReceipt": {
+    "wasmSha256": "59d50c9adbebfae912da432ebd330b9011739eea7a4d5217c7ce83773dbc1bd9",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "38ea36c2a39d90346e59c3df21141862a450fd4f871bfd169b1426d19899f917",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab",
+    "draftPolicyRevision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+    "draftPolicySourceSha256": "8888ad0d88e8f954b5b1cd4fa0d3da62ac13e906f9410866cfd9dec6112f11f2",
+    "draftPolicyWasmSha256": "baa17f80e3ce7ce32b86086606168846454ca547842359251b50b911d4b89e42",
+    "didSha256": "c0d2281c76eca67add88ef2ad86201f5185eea70a9d404156dcc0fa0ee5737da",
+    "storageRevision": "b3a1450c78d250b4b022fa9c7a0cb4690a924785",
+    "transactionalStorageSha256": "9565d1ee272f994891ead432e3ef112531c66962510aaa8e4e8fd4d77e0ba319",
+    "managedStorageSha256": "0000a01a7af1586efe74eedee12f2daaf1c5709607d9e5b0d5ce3c95457351a7"
+  },
+  "tests": {
+    "jun-705-idb-ui-v1": {
+      "sha256": "86b4d7a3a5819d4a4817b40ad668feebbeef2390c3c44a7b32254e0683cde126",
+      "result": {
+        "status": "PASS_ZUHYO_IDB_UI_SYNTHETIC",
+        "checks": [
+          "new-document-save-reload",
+          "stale-tab-conflict-preserves-draft",
+          "stale-revision-draft-preview-only",
+          "backup-preview-and-atomic-restore",
+          "save-abort-reload-recover-draft-and-retry",
+          "legacy-session-draft-preview-only",
+          "restore-abort-rolls-back-backup",
+          "postcommit-restore-truthful-warning",
+          "postcommit-save-truthful-warning",
+          "legacy-preview-explicit-trusted-confirm",
+          "legacy-copy-and-old-backup-preserved",
+          "old-backup-preview",
+          "old-writer-divergence-freezes",
+          "unfinished-and-late-composition-journaled",
+          "both-divergent-branches-and-unsaved-draft-export",
+          "migration-keyboard-cancel-preserves",
+          "invalid-legacy-refusal",
+          "invalid-utf16-legacy-export",
+          "migration-preview-race-refusal",
+          "migration-transaction-abort",
+          "migration-postcommit-divergence-preserved"
+        ],
+        "scope": "synthetic Chrome loopback; no real user data, atomic cross-store coordination, crash/power-loss, QEMU or release"
+      }
+    },
+    "jun-705-idb-race-v1": {
+      "sha256": "3676b9bac16da6423d412e6825ded79b891371345065441b067f7450b78773b6",
+      "result": {
+        "status": "PASS_IDB_DRAFT_DISCARD_RACE",
+        "scope": "synthetic same-origin Chrome with blocked IndexedDB transaction; no OS, crash or release"
+      }
+    },
+    "jun-705-idb-ime-v1": {
+      "sha256": "69e879ebd90b2e449b3668e521b48fecb710d5a39bfde5d00909032fb39e2a11",
+      "result": {
+        "status": "PASS_IDB_CDP_SYNTHETIC_IME",
+        "mid": {
+          "value": "日本",
+          "stored": null,
+          "events": [
+            {
+              "type": "compositionstart",
+              "composing": false,
+              "trusted": true
+            },
+            {
+              "type": "compositionupdate",
+              "composing": false,
+              "trusted": true
+            },
+            {
+              "type": "beforeinput",
+              "composing": true,
+              "trusted": true
+            },
+            {
+              "type": "input",
+              "composing": true,
+              "trusted": true
+            }
+          ]
+        },
+        "final": {
+          "value": "日本語",
+          "events": [
+            {
+              "type": "compositionstart",
+              "composing": false,
+              "trusted": true
+            },
+            {
+              "type": "compositionupdate",
+              "composing": false,
+              "trusted": true
+            },
+            {
+              "type": "beforeinput",
+              "composing": true,
+              "trusted": true
+            },
+            {
+              "type": "input",
+              "composing": true,
+              "trusted": true
+            },
+            {
+              "type": "compositionupdate",
+              "composing": false,
+              "trusted": true
+            },
+            {
+              "type": "beforeinput",
+              "composing": true,
+              "trusted": true
+            },
+            {
+              "type": "input",
+              "composing": true,
+              "trusted": true
+            },
+            {
+              "type": "compositionend",
+              "composing": false,
+              "trusted": false
+            }
+          ]
+        },
+        "limitations": [
+          "CDP-generated browser events; not a physical OS IME test",
+          "loopback local candidate; not a release"
+        ]
+      }
+    },
+    "jun-705-idb-restart-v1": {
+      "sha256": "4e33b5893a0012a2063d78e9438fed59390752969b8856f0d0b124c58884af13",
+      "result": {
+        "status": "PASS_ZUHYO_IDB_RESTART_SYNTHETIC",
+        "scope": "synthetic Chrome clean process restart; no crash/power-loss, storage eviction, old-client coordination, QEMU or release"
+      }
+    }
+  },
+  "limitations": [
+    "Synthetic loopback Chrome only; no real user data, cross-origin migration, physical IME, crash or eviction qualification.",
+    "IndexedDB and legacy localStorage cannot be committed atomically together; divergence detection has ABA and notification timing limits.",
+    "QEMU, fleet trust and synchronization, public route and release remain unqualified."
+  ]
+}

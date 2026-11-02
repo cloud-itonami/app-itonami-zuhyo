@@ -1,0 +1,13 @@
+{
+  "revision": "b3a1450c78d250b4b022fa9c7a0cb4690a924785",
+  "sources": [
+    {
+      "path": "browser/transactional-storage.js",
+      "sha256": "9565d1ee272f994891ead432e3ef112531c66962510aaa8e4e8fd4d77e0ba319"
+    },
+    {
+      "path": "browser/managed-storage.js",
+      "sha256": "0000a01a7af1586efe74eedee12f2daaf1c5709607d9e5b0d5ce3c95457351a7"
+    }
+  ]
+}

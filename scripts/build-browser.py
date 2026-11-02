@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build an offline Zuhyo browser candidate using a local Amu selfhost root.
 
-Usage: python3 scripts/build-browser.py AMU_DIR BROKER_REPO POLICY_REPO OUTPUT_DIR
+Usage: python3 scripts/build-browser.py AMU_DIR BROKER_REPO POLICY_REPO STORAGE_REPO OUTPUT_DIR
 The output must not exist. This candidate is not a release or route cutover.
 """
 import base64
@@ -14,9 +14,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-if len(sys.argv) != 5:
+if len(sys.argv) != 6:
     raise SystemExit(__doc__)
-amu, broker, policy_repo, out = [Path(x).resolve() for x in sys.argv[1:]]
+amu, broker, policy_repo, storage_repo, out = [Path(x).resolve() for x in sys.argv[1:]]
 out.mkdir(parents=True, exist_ok=False)
 root = Path(__file__).resolve().parents[1]
 pin = json.loads((root / 'appview/slides-mcp-component/client-runtime.pin.json').read_text())
@@ -25,6 +25,12 @@ raw = subprocess.run(['git', '-C', str(broker), 'show', pin['revision'] + ':src/
 if hashlib.sha256(raw).hexdigest() != pin['sha256']:
     raise SystemExit('canonical broker digest mismatch')
 (out / 'kotoba-client-runtime.js').write_bytes(raw)
+storage_pin = json.loads((root / 'browser/storage.pin.json').read_text())
+for item in storage_pin['sources']:
+    blob = subprocess.run(['git', '-C', str(storage_repo), 'show', storage_pin['revision'] + ':' + item['path']], check=True, capture_output=True).stdout
+    if hashlib.sha256(blob).hexdigest() != item['sha256']:
+        raise SystemExit('storage adapter digest mismatch')
+    (out / Path(item['path']).name).write_bytes(blob)
 for name in ('index.html', 'style.css', 'app.js'):
     shutil.copyfile(root / 'browser' / name, out / name)
 shutil.copyfile(amu / 'runtime/wasm32-browser-static-host.js', out / 'worker.js')
@@ -68,7 +74,7 @@ if did_document.get('id') != 'did:web:zuhyo.itonami.app' or did_document.get('@c
 (out / '.well-known').mkdir()
 (out / '.well-known/did.json').write_bytes(did)
 desc = {'schema': 'kotoba.app.client-runtime.v1', 'target': 'browser', 'profile': 'trusted-page-v1',
-        'entry': 'index.html', 'local-state': {'adapter': 'localstorage', 'schema': 'itonami.zuhyo.candidate.zs1', 'version': 1},
+        'entry': 'index.html', 'local-state': {'adapter': 'indexeddb', 'schema': 'itonami.zuhyo.candidate.idb-v2', 'version': 2},
         'workers': [{'id': 'zuhyo-worker', 'entry': 'worker.js', 'protocol': 'wasm32-browser-static.v1'}], 'operations': []}
 (out / 'client-runtime.json').write_text(json.dumps(desc, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 config = ('export const descriptor = ' + json.dumps(desc, ensure_ascii=False) + ';\n'
@@ -82,6 +88,7 @@ receipt = {'wasmSha256': hashlib.sha256(wasm).hexdigest(), 'compilerSha256': has
            'workerSha256': hashlib.sha256((out / 'worker.js').read_bytes()).hexdigest(),
            'draftPolicyRevision': policy_pin['revision'], 'draftPolicySourceSha256': hashlib.sha256(policy_source.encode()).hexdigest(),
            'draftPolicyWasmSha256': hashlib.sha256(policy_wasm).hexdigest(),
-           'didSha256': hashlib.sha256(did).hexdigest()}
+           'didSha256': hashlib.sha256(did).hexdigest(), 'storageRevision': storage_pin['revision'],
+           'transactionalStorageSha256': storage_pin['sources'][0]['sha256'], 'managedStorageSha256': storage_pin['sources'][1]['sha256']}
 (out / 'build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
 print('BUILT_ZUHYO_BROWSER_CANDIDATE', out)
