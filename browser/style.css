@@ -1,0 +1,13 @@
+:root { font-family: system-ui, sans-serif; color: #20242a; background: #f2f4f7; }
+body { margin: 0; }
+#status { margin: 0; padding: .5rem 1rem; background: #fff; }
+.deck { max-width: 65rem; margin: auto; }
+.bar, .tools { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem; background: white; }
+input { min-width: 12rem; padding: .45rem; }
+button { padding: .4rem .6rem; cursor: pointer; }
+.edit, .present { margin: 1rem; padding: 2rem; min-height: 20rem; background: white; }
+.edit { display: flex; flex-direction: column; gap: .5rem; }
+.present { position: relative; overflow: hidden; }
+.present.shape-rect { border-left: 2rem solid #648cda; }
+.present.shape-circle::after { content: ''; position: absolute; right: 3rem; bottom: 3rem; width: 6rem; height: 6rem; border-radius: 50%; background: #648cda; }
+.stats { padding: 1rem; color: #525a64; }
