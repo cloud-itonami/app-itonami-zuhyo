@@ -58,7 +58,7 @@ function downloadRaw(value, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 document.getElementById('export-current-conflict').addEventListener('click', async () => {
-  try { const value = (await storage.readCurrent()).value; downloadRaw(value, 'zuhyo-current-recovery.txt'); }
+  try { const value = await storage.readRecoveryValue(); downloadRaw(value, 'zuhyo-current-recovery.txt'); }
   catch (_) { fail('新しい保存先の内容を書き出せません。'); }
 });
 document.getElementById('export-legacy-conflict').addEventListener('click', () => {

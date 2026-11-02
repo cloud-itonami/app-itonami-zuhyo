@@ -1,13 +1,13 @@
 {
-  "revision": "b3a1450c78d250b4b022fa9c7a0cb4690a924785",
+  "revision": "d569c4cc7e884c58dc5867c38731c9465bac70dc",
   "sources": [
     {
       "path": "browser/transactional-storage.js",
-      "sha256": "9565d1ee272f994891ead432e3ef112531c66962510aaa8e4e8fd4d77e0ba319"
+      "sha256": "3d83f73142bd053dadb82d23d8e220ee9f3490515568b048d95f2ac1954c5dcf"
     },
     {
       "path": "browser/managed-storage.js",
-      "sha256": "0000a01a7af1586efe74eedee12f2daaf1c5709607d9e5b0d5ce3c95457351a7"
+      "sha256": "f48d45cedf89be861f1a3376e04ded9a19c2914e3cbd4756326b1799ab7a14c0"
     }
   ]
 }
