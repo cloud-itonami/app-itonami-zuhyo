@@ -258,6 +258,9 @@ async function dispatch(event) {
       const next = output.slice(0, -1);
       if (encoder.encode(next).length > LIMIT) throw Error('snapshot bounds');
       const tree = parseTree(await run(['view', next]));
+      // Recheck after the asynchronous worker. Web Locks protect cooperating
+      // writers; localStorage itself has no atomic compare-and-swap.
+      if (localStorage.getItem(KEY) !== persisted) throw Error('concurrent change');
       localStorage.setItem(KEY, next);
       persisted = next;
       snapshot = next;
@@ -393,7 +396,9 @@ document.getElementById('backup-confirm').addEventListener('click', () => {
         }
         if (stamp > 9999999999999) throw Error('backup timestamp bounds');
         const backupKey = BACKUP_PREFIX + String(stamp).padStart(13, '0') + '.' + crypto.randomUUID();
+        if (localStorage.getItem(KEY) !== persisted) throw Error('concurrent change');
         localStorage.setItem(backupKey, snapshot);
+        if (localStorage.getItem(KEY) !== persisted) throw Error('concurrent change');
         localStorage.setItem(KEY, next);
         persisted = next; snapshot = next;
         mount.replaceChildren(tree);
