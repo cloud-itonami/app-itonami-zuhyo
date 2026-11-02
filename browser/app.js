@@ -8,7 +8,7 @@ const LIMIT = 35000;
 const MAX_VIEW = 1000000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
-let bytes, snapshot, persisted;
+let bytes, compiledModule, snapshot, persisted;
 let pending = Promise.resolve();
 
 function fail(message) { status.textContent = message; }
@@ -54,7 +54,7 @@ function run(args) {
       else resolve(data.output);
     };
     worker.onerror = () => { clearTimeout(timer); worker.terminate(); reject(Error('worker failed')); };
-    worker.postMessage({ bytes, fuel: 25000000, allow: [37, 38], args });
+    worker.postMessage({ module: compiledModule, fuel: 25000000, allow: [37, 38], args });
   });
 }
 async function draw(state, focus) {
@@ -113,6 +113,7 @@ async function start() {
   bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0));
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
   if (digest !== wasmSha256) throw Error('artifact digest');
+  compiledModule = await WebAssembly.compile(bytes);
   const saved = localStorage.getItem(KEY);
   persisted = saved;
   if (saved !== null) {

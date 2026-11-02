@@ -52,3 +52,12 @@ for the Worker delay remains unproven. The adapter now distinguishes timeout
 and cross-tab conflict for the user, and an artificially shortened timeout test
 confirmed the prior saved deck remains. Follow-up browser Wasm SHA-256:
 `5b9f1cfc3f6d0ca37dd5af90aec201a81fe4d91af5925ed802bb09db8b7ec062`.
+
+A local instrumented copy recorded one slow step with Worker-start message at
+3.555 s, Wasm-start message at 4.581 s and completion message at 16.938 s.
+These are main-thread notification times, include scheduling, and do not prove
+the cause of the earlier 30-second timeout. The adapter now compiles Wasm once
+after its digest check and sends the immutable `WebAssembly.Module` to each
+fresh Worker instead of sending bytes for repeated compilation. Chrome reran
+the UI, interrupted-save and negative digest tests successfully. This change
+is not evidence that the timeout is fixed or that other browsers are qualified.
