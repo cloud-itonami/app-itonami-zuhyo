@@ -181,7 +181,10 @@
                         (snap-read-slides s (vector-at sh 2) (- left 1)
                           (document-vector-conj acc (slide (snap-text s h) (snap-text s b) (snap-text s n) shape)))))))))))))))
 (defn snap-decode [s :string] [:option :document]
-  (if (or (< (string-byte-length s) 4) (not (or (string=? (string-substring s 0 4) "ZS1|") (string=? (string-substring s 0 4) "ZS2|")))) (option-none-of [:option :document])
+  (if (or (< (string-byte-length s) 4) (not (= (string-code-point-at s 0) 90))
+          (not (= (string-code-point-at s 1) 83))
+          (not (or (= (string-code-point-at s 2) 49) (= (string-code-point-at s 2) 50)))
+          (not (= (string-code-point-at s 3) 124))) (option-none-of [:option :document])
     (let [t (snap-read s 4)]
       (if (or (< (vector-at t 0) 0) (> (- (vector-at t 1) (vector-at t 0)) 512)) (option-none-of [:option :document])
         (let [m (snap-read s (vector-at t 2))]
@@ -218,6 +221,8 @@
              (= (current (step c "next" "click" "")) 1)
              (= (document-count (slides removed)) 1)
              (string=? (dstr (dget (selected removed) :heading)) "第一😀")
+             (not (option-some?-of [:option :document] (snap-decode "雪雪")))
+             (not (option-some?-of [:option :document] (snap-decode "ZS雪雪")))
              (option-some?-of [:option :document] decoded)
              (string=? (string-substring (option-value-of [:option :string] encoded "") 0 4) "ZS2|")
              (string=? (string-substring (option-value-of [:option :string] (snap-encode (init)) "") 0 4) "ZS1|")
