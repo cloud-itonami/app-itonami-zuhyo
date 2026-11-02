@@ -301,6 +301,9 @@ function exportBackup() {
 }
 async function previewBackup(candidate, label) {
   if (typeof candidate !== 'string' || !candidate.startsWith('ZS1|') && !candidate.startsWith('ZS2|') || encoder.encode(candidate).length > LIMIT) throw Error('invalid backup');
+  const protectedState = await run(['protect', candidate]);
+  if (!protectedState.endsWith('\n')) throw Error('protect refusal');
+  candidate = protectedState.slice(0, -1);
   const tree = parseTree(await run(['view', candidate]));
   proposedBackup = candidate;
   document.getElementById('backup-label').textContent = label;
@@ -375,7 +378,21 @@ async function start() {
   if (saved !== null) {
     if (encoder.encode(saved).length > LIMIT) throw Error('saved state size');
     snapshot = saved;
-    await draw(snapshot);
+    if (saved.startsWith('ZS1|') && /[\r\n]/.test(saved)) {
+      const output = await run(['protect', saved]);
+      if (!output.endsWith('\n')) throw Error('protect refusal');
+      const next = output.slice(0, -1);
+      const tree = parseTree(await run(['view', next]));
+      if (next !== saved) {
+        if (!navigator.locks) throw Error('local locking unavailable');
+        await navigator.locks.request(KEY, async () => {
+          if (localStorage.getItem(KEY) !== saved) throw Error('concurrent change');
+          localStorage.setItem(KEY, next);
+          persisted = next; snapshot = next;
+        });
+      }
+      render(tree);
+    } else await draw(snapshot);
     fail('保存済みのスライドを開きました');
     inspectDraft(true);
   } else {
