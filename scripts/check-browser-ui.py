@@ -221,6 +221,7 @@ try:
     if evaluate("document.querySelector('[data-k=heading]') !== null || localStorage.getItem('itonami.zuhyo.candidate.zs1') !== null"):
         raise ValueError('tampered candidate ran or wrote state')
     requests = [e['params']['request']['url'] for e in pipe.events if e.get('method') == 'Network.requestWillBeSent']
+    if any(u.split('?', 1)[0].endswith('/favicon.ico') for u in requests): raise ValueError('unversioned favicon request')
     if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected network request')
     (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['backup-export-import-cancel-restore','backup-invalid-both-write-failures-conflict','edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-timeout','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
     print('PASS_ZUHYO_BROWSER_UI edit, present, save and refusal')
