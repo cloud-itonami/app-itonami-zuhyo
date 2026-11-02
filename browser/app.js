@@ -8,6 +8,7 @@ const draftNotice = document.getElementById('draft-notice');
 const draftPanel = document.getElementById('draft-recovery');
 const draftRestore = document.getElementById('draft-restore');
 let draftBlocked = false, recoveryRaw = null, recoveryItems = null, lockedControls = [];
+let draftReadFailed = false, retryDraftAllowed = false;
 const edits = new Map();
 const composing = new Set();
 let deferredRender = null;
@@ -50,6 +51,9 @@ function unlockDraftMount() {
 }
 function offerDraft(raw, allowRestore) {
   recoveryRaw = raw; recoveryItems = null; draftBlocked = true; mount.inert = true;
+  document.getElementById('draft-retry-read').hidden = true;
+  document.getElementById('draft-download').disabled = false;
+  document.getElementById('draft-discard').disabled = false;
   lockedControls = [...mount.querySelectorAll('input,button')].map(el => [el, el.disabled]);
   for (const [el] of lockedControls) el.disabled = true;
   let data = null;
@@ -73,9 +77,33 @@ function offerDraft(raw, allowRestore) {
   draftPanel.hidden = false;
 }
 function inspectDraft(allowRestore) {
-  try { const raw = sessionStorage.getItem(DRAFT_KEY); if (raw !== null) offerDraft(raw, allowRestore); }
-  catch (_) { draftWarning('再読込用の未保存データを確認できません。'); }
+  let raw;
+  try { raw = sessionStorage.getItem(DRAFT_KEY); }
+  catch (_) {
+    if (!draftReadFailed) {
+      draftBlocked = true; mount.inert = true;
+      lockedControls = [...mount.querySelectorAll('input,button')].map(el => [el, el.disabled]);
+      for (const [el] of lockedControls) el.disabled = true;
+    }
+    draftReadFailed = true; retryDraftAllowed = allowRestore;
+    recoveryRaw = null; recoveryItems = null; draftRestore.disabled = true;
+    document.getElementById('draft-download').disabled = true;
+    document.getElementById('draft-discard').disabled = true;
+    document.getElementById('draft-message').textContent = '未保存データを確認できないため、編集を停止しています。確認を再試行してください。';
+    document.getElementById('draft-preview').textContent = '';
+    document.getElementById('draft-retry-read').hidden = false;
+    draftPanel.hidden = false;
+    draftWarning('再読込用の未保存データを確認できません。');
+    return;
+  }
+  if (draftReadFailed) { draftReadFailed = false; draftBlocked = false; unlockDraftMount(); }
+  draftWarning('');
+  if (raw !== null) offerDraft(raw, allowRestore);
+  else { draftPanel.hidden = true; document.getElementById('draft-retry-read').hidden = true; }
 }
+document.getElementById('draft-retry-read').addEventListener('click', () => {
+  if (draftReadFailed) inspectDraft(retryDraftAllowed);
+});
 document.getElementById('draft-download').addEventListener('click', () => {
   if (recoveryRaw === null) return;
   const url = URL.createObjectURL(new Blob([recoveryRaw], { type: 'application/json' }));
@@ -83,7 +111,7 @@ document.getElementById('draft-download').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 });
 document.getElementById('draft-discard').addEventListener('click', () => {
-  if (!draftBlocked || !window.confirm('このタブの未保存データを破棄しますか？')) return;
+  if (!draftBlocked || draftReadFailed || !window.confirm('このタブの未保存データを破棄しますか？')) return;
   try { sessionStorage.removeItem(DRAFT_KEY); }
   catch (_) { draftWarning('未保存データを破棄できません。'); return; }
   draftBlocked = false; recoveryRaw = null; recoveryItems = null; draftPanel.hidden = true; unlockDraftMount();

@@ -40,7 +40,28 @@ try:
   if not any(e.get('method')=='Page.javascriptDialogOpening' and e.get('params',{}).get('type')==kind for e in pipe.events): raise ValueError(kind+' event missing')
  def reload_accept():
   evaluate('window.__oldDocument=true');pipe.send('Page.reload',{},session);dialog(True,'beforeunload');wait('window.__oldDocument !== true','new document');wait("document.querySelector('[data-k=title]') !== null",'reloaded UI')
- wait("document.querySelector('[data-k=title]') !== null",'initial');activate();evaluate("document.querySelector('[data-k=title]').select()");pipe.call('Input.insertText',{'text':'保存済み'},session)
+ wait("document.querySelector('[data-k=title]') !== null",'initial')
+
+ # A failed journal read must freeze editing until a successful retry; it must
+ # neither overwrite a retained record nor discard it without inspection.
+ evaluate("sessionStorage.setItem('itonami.zuhyo.candidate.zs1.session-draft.v1','{retained')")
+ injected=pipe.call('Page.addScriptToEvaluateOnNewDocument',{'source':"window.__draftGet=Storage.prototype.getItem;Storage.prototype.getItem=function(k){if(this===sessionStorage && k==='itonami.zuhyo.candidate.zs1.session-draft.v1')throw Error('read denied');return window.__draftGet.call(this,k)}"},session)['identifier']
+ evaluate('window.__oldDocument=true');pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','new document for read failure');wait("document.querySelector('[data-k=title]') !== null",'UI after read failure')
+ if not evaluate("document.getElementById('app').inert && [...document.querySelectorAll('#app input,#app button')].every(e=>e.disabled) && !document.getElementById('draft-recovery').hidden && document.getElementById('draft-retry-read') && !document.getElementById('draft-retry-read').hidden && document.getElementById('draft-discard').disabled && document.getElementById('draft-download').disabled"): raise ValueError('failed journal read did not freeze editor')
+ evaluate("document.getElementById('draft-retry-read').click()")
+ if not evaluate("document.getElementById('app').inert && document.getElementById('draft-discard').disabled"): raise ValueError('failed retry unlocked editor')
+ pipe.call('Page.removeScriptToEvaluateOnNewDocument',{'identifier':injected},session);evaluate("Storage.prototype.getItem=window.__draftGet;document.getElementById('draft-retry-read').click()")
+ wait("!document.getElementById('draft-recovery').hidden && document.getElementById('draft-retry-read').hidden && !document.getElementById('draft-discard').disabled",'retained record offered after retry')
+ if evaluate("sessionStorage.getItem('itonami.zuhyo.candidate.zs1.session-draft.v1')")!='{retained' or not evaluate("document.getElementById('app').inert && document.getElementById('draft-restore').disabled"): raise ValueError('retained record was altered or applied')
+ pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden && !document.getElementById('app').inert",'discard retained record')
+ # A read failure with no journal also stays locked until absence is verified.
+ injected=pipe.call('Page.addScriptToEvaluateOnNewDocument',{'source':"window.__draftGet=Storage.prototype.getItem;Storage.prototype.getItem=function(k){if(this===sessionStorage && k==='itonami.zuhyo.candidate.zs1.session-draft.v1')throw Error('read denied');return window.__draftGet.call(this,k)}"},session)['identifier']
+ evaluate('window.__oldDocument=true');pipe.call('Page.reload',{},session);wait('window.__oldDocument !== true','new document for empty read failure');wait("document.querySelector('[data-k=title]') !== null",'UI after empty read failure')
+ if not evaluate("document.getElementById('app').inert && !document.getElementById('draft-retry-read').hidden"): raise ValueError('empty journal read failure unlocked editor')
+ pipe.call('Page.removeScriptToEvaluateOnNewDocument',{'identifier':injected},session);evaluate("Storage.prototype.getItem=window.__draftGet;document.getElementById('draft-retry-read').click()")
+ wait("document.getElementById('draft-recovery').hidden && !document.getElementById('app').inert",'empty journal read verified')
+ activate();evaluate("document.querySelector('[data-k=title]').select()");pipe.call('Input.insertText',{'text':'保存済み'},session)
+
  wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('保存済み') && document.getElementById('status').textContent === '保存しました'",'baseline')
  saved=evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
  evaluate("window.localSetter=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(this===localStorage && k==='itonami.zuhyo.candidate.zs1')throw Error('quota');return window.localSetter.call(this,k,v)}")
@@ -112,6 +133,6 @@ try:
  pipe.send('Runtime.evaluate',{'expression':"document.getElementById('draft-discard').click()"},session);dialog(True,'confirm');wait("document.getElementById('draft-recovery').hidden",'discard mismatched initial draft')
  requests=[e['params']['request']['url'] for e in pipe.events if e.get('method')=='Network.requestWillBeSent']
  if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected request')
- (out/'result.json').write_text(json.dumps({'status':'PASS','checks':['same-tab-reload','explicit-recovery-and-retry','stale-draft-refusal','raw-export','explicit-discard','malformed-draft-refusal','recovery-selection-race-refusal','journal-quota-and-retry','journal-cleanup-failure','initial-state-mismatch','program-digest-mismatch','loopback-only'],'limitations':['sessionStorage only','not crash or closed-tab durability','synthetic data']},indent=2)+'\n');print('PASS_BROWSER_SESSION_DRAFT')
+ (out/'result.json').write_text(json.dumps({'status':'PASS','checks':['same-tab-reload','explicit-recovery-and-retry','stale-draft-refusal','raw-export','explicit-discard','malformed-draft-refusal','recovery-selection-race-refusal','journal-quota-and-retry','journal-cleanup-failure','initial-state-mismatch','program-digest-mismatch','journal-read-failure-retry','empty-journal-read-retry','loopback-only'],'limitations':['sessionStorage only','not crash or closed-tab durability','synthetic data']},indent=2)+'\n');print('PASS_BROWSER_SESSION_DRAFT')
 finally:
  pipe.close();server.shutdown();server.server_close()
