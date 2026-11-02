@@ -11,3 +11,7 @@ button { padding: .4rem .6rem; cursor: pointer; }
 .present.shape-rect { border-left: 2rem solid #648cda; }
 .present.shape-circle::after { content: ''; position: absolute; right: 3rem; bottom: 3rem; width: 6rem; height: 6rem; border-radius: 50%; background: #648cda; }
 .stats { padding: 1rem; color: #525a64; }
+
+dialog { width: min(52rem, 90vw); max-height: 85vh; border: 1px solid #808891; }
+dialog::backdrop { background: #0008; }
+#backup-preview { max-height: 50vh; overflow: auto; border: 1px solid #aab2bc; margin: 1rem 0; }

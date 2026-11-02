@@ -80,6 +80,66 @@ try:
     wait("document.getElementById('status').textContent.includes('入力が長すぎます')", 'oversized input')
     wait("document.querySelector('[data-k=heading]')?.value === '第一😀'", 'oversized restore')
     if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != saved: raise ValueError('oversize clobbered storage')
+    # A downloaded ZS1 can be explicitly reviewed and restored; invalid input
+    # and storage failure must never replace the current document.
+    download = out / 'downloads'
+    download.mkdir()
+    pipe.call('Browser.setDownloadBehavior', {'behavior': 'allow', 'downloadPath': str(download)})
+    evaluate("document.querySelector('[data-k=backup-export]').click()")
+    end = time.time() + 90
+    while time.time() < end and not (download / 'zuhyo-backup.zs1').exists(): time.sleep(.2)
+    exported = download / 'zuhyo-backup.zs1'
+    if not exported.exists() or exported.read_text() != saved: raise ValueError('backup download mismatch')
+    evaluate("(()=>{let e=document.querySelector('[data-k=heading]');e.value='バックアップ前';e.dispatchEvent(new Event('input',{bubbles:true}));})()")
+    wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('バックアップ前')", 'edit before import')
+    prior = evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
+    def select_file(path):
+        pipe.call('DOM.enable', {}, session)
+        root = pipe.call('DOM.getDocument', {}, session)['root']['nodeId']
+        node = pipe.call('DOM.querySelector', {'nodeId': root, 'selector': '#backup-file'}, session)['nodeId']
+        pipe.call('DOM.setFileInputFiles', {'nodeId': node, 'files': [str(path)]}, session)
+    select_file(exported)
+    wait("document.getElementById('backup-dialog').open", 'backup preview')
+    if evaluate("document.querySelector('#backup-preview [data-k=heading]')?.value") != '第一😀': raise ValueError('preview mismatch')
+    evaluate("document.getElementById('backup-cancel').click()")
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != prior: raise ValueError('cancel changed storage')
+    # Reset the input, as the user action does before selecting a file again.
+    evaluate("document.getElementById('backup-file').value=''")
+    select_file(exported)
+    wait("document.getElementById('backup-dialog').open", 'backup preview again')
+    evaluate("document.getElementById('backup-confirm').click()")
+    wait("document.getElementById('status').textContent === 'バックアップから復元しました。'", 'restore backup')
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != saved: raise ValueError('restore mismatch')
+    if not evaluate("Object.keys(localStorage).some(k=>k.startsWith('itonami.zuhyo.candidate.zs1.preimport.') && localStorage.getItem(k).includes('バックアップ前'))"): raise ValueError('missing prior backup')
+    evaluate("document.querySelector('[data-k=backup-restore]').click()")
+    wait("document.getElementById('backup-dialog').open", 'prior backup preview')
+    evaluate("document.getElementById('backup-confirm').click()")
+    wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('バックアップ前')", 'restore prior')
+    bad = out / 'bad.zs1'
+    bad.write_bytes(b'ZS1|bad')
+    evaluate("document.getElementById('backup-file').value=''")
+    select_file(bad)
+    wait("document.getElementById('status').textContent.includes('バックアップを読み込めません')", 'bad backup refusal')
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != prior or evaluate("document.getElementById('backup-dialog').open"): raise ValueError('bad import changed state')
+    for name, contents in [('utf8.zs1', b'ZS1|\xff'), ('large.zs1', b'ZS1|' + b'x' * 35000), ('unknown.zs1', b'OLD|document')]:
+        invalid = out / name
+        invalid.write_bytes(contents)
+        evaluate("document.getElementById('status').textContent='' ; document.getElementById('backup-file').value=''")
+        select_file(invalid)
+        wait("document.getElementById('status').textContent.includes('バックアップを読み込めません')", name + ' refusal')
+        if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != prior or evaluate("document.getElementById('backup-dialog').open"): raise ValueError(name + ' changed state')
+    evaluate("document.getElementById('backup-file').value=''")
+    select_file(exported)
+    wait("document.getElementById('backup-dialog').open", 'quota backup preview')
+    evaluate("window.savedSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k.includes('.preimport.'))throw Error('quota');return window.savedSetItem.call(this,k,v)};document.getElementById('backup-confirm').click()")
+    wait("document.getElementById('status').textContent.includes('復元できませんでした')", 'backup quota refusal')
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != prior: raise ValueError('quota import changed state')
+    evaluate("Storage.prototype.setItem=window.savedSetItem")
+    # Return to the preexisting test fixture without modifying the product data path.
+    evaluate("document.querySelector('[data-k=backup-restore]').click()")
+    wait("document.getElementById('backup-dialog').open", 'return backup preview')
+    evaluate("document.getElementById('backup-confirm').click()")
+    wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('第一😀')", 'return to test state')
     second = pipe.call('Target.createTarget', {'url': url})['targetId']
     second_session = pipe.call('Target.attachToTarget', {'targetId': second, 'flatten': True})['sessionId']
     def second_eval(expr):
@@ -89,10 +149,22 @@ try:
     end = time.time() + 90
     while time.time() < end and second_eval("document.querySelector('[data-k=heading]')?.value") != '第一😀': time.sleep(.2)
     if second_eval("document.querySelector('[data-k=heading]')?.value") != '第一😀': raise TimeoutError('second tab')
+    pipe.call('DOM.enable', {}, second_session)
+    second_root = pipe.call('DOM.getDocument', {}, second_session)['root']['nodeId']
+    second_file = pipe.call('DOM.querySelector', {'nodeId': second_root, 'selector': '#backup-file'}, second_session)['nodeId']
+    pipe.call('DOM.setFileInputFiles', {'nodeId': second_file, 'files': [str(exported)]}, second_session)
+    end = time.time() + 90
+    while time.time() < end and not second_eval("document.getElementById('backup-dialog').open"): time.sleep(.2)
+    if not second_eval("document.getElementById('backup-dialog').open"): raise TimeoutError('second tab backup preview')
     input_('title', '先の変更')
     wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('先の変更') || document.getElementById('status').textContent.includes('保存できませんでした')", 'first tab write')
     if not evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('先の変更')"):
         raise ValueError('first tab write refused: ' + str(evaluate("document.getElementById('status').textContent")))
+    saved_after_edit = evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
+    second_eval("document.getElementById('backup-confirm').click()")
+    end = time.time() + 90
+    while time.time() < end and not second_eval("document.getElementById('status')?.textContent.includes('復元できませんでした')"): time.sleep(.2)
+    if not second_eval("document.getElementById('status')?.textContent.includes('別のタブ')") or evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != saved_after_edit: raise ValueError('conflicting import clobbered state')
     second_eval("(()=>{let e=document.querySelector('[data-k=title]');e.value='後の変更';e.dispatchEvent(new Event('input',{bubbles:true}));})()")
     end = time.time() + 90
     while time.time() < end and not second_eval("document.getElementById('status')?.textContent.includes('保存できませんでした')"): time.sleep(.2)
@@ -138,7 +210,7 @@ try:
         raise ValueError('tampered candidate ran or wrote state')
     requests = [e['params']['request']['url'] for e in pipe.events if e.get('method') == 'Network.requestWillBeSent']
     if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected network request')
-    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-timeout','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
+    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['backup-export-import-cancel-restore','backup-invalid-quota-conflict','edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-timeout','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
     print('PASS_ZUHYO_BROWSER_UI edit, present, save and refusal')
 finally:
     pipe.close(); server.shutdown(); server.server_close()

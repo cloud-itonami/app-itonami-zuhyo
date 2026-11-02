@@ -77,7 +77,8 @@
           (document-vector (input "title" (dstr (dget s :title))) (button "mode" (if present "編集" "発表"))))
         (el "div" (document-map :class (document-string "tools"))
           (document-vector (button "prev" "前へ") (button "next" "次へ") (button "add" "追加")
-                           (button "remove" "削除") (button "up" "上へ") (button "down" "下へ")))
+                           (button "remove" "削除") (button "up" "上へ") (button "down" "下へ")
+                           (button "backup-export" "バックアップ") (button "backup-import" "読み込む") (button "backup-restore" "読み込み前に戻す")))
         (if present
           (el "main" (document-map :class (document-string (string-concat "present shape-" shape)))
             (document-vector (leaf "h1" (document-map) (dstr (dget one :heading)))

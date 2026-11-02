@@ -10,6 +10,16 @@
 <body>
   <p id="status" role="status" aria-live="polite">読み込み中…</p>
   <div id="app"></div>
+  <input id="backup-file" type="file" accept=".zs1,application/octet-stream" hidden>
+  <dialog id="backup-dialog" aria-labelledby="backup-heading">
+    <h2 id="backup-heading">復元内容の確認</h2>
+    <p>プレビューには、保存時に選択されていたスライドが表示されます。全スライドの内容を表示するものではありません。</p>
+    <p id="backup-label"></p>
+    <p>現在のスライドは、このブラウザに読み込み前のバックアップとして保存されます。</p>
+    <div id="backup-preview" inert></div>
+    <button id="backup-cancel" type="button">キャンセル</button>
+    <button id="backup-confirm" type="button">この内容を復元</button>
+  </dialog>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

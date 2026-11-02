@@ -6,6 +6,11 @@ const mount = document.getElementById('app');
 const KEY = 'itonami.zuhyo.candidate.zs1';
 const LIMIT = 35000;
 const MAX_VIEW = 1000000;
+const BACKUP_PREFIX = KEY + '.preimport.';
+const backupFile = document.getElementById('backup-file');
+const backupDialog = document.getElementById('backup-dialog');
+const backupPreview = document.getElementById('backup-preview');
+let proposedBackup = null;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 let bytes, compiledModule, snapshot, persisted;
@@ -104,9 +109,81 @@ for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   if (!el || !mount.contains(el) || (e.type === 'input' && el.tagName !== 'INPUT')
       || (e.type === 'click' && el.tagName !== 'BUTTON')) return;
   const key = el.dataset.k, value = e.type === 'input' ? el.value : '';
+  if (e.type === 'click' && key === 'backup-import') { backupFile.value = ''; backupFile.click(); return; }
+  if (e.type === 'click' && key === 'backup-export') { pending = pending.then(exportBackup); return; }
+  if (e.type === 'click' && key === 'backup-restore') { pending = pending.then(restoreBackup); return; }
   const focus = e.type === 'input' ? { key, start: el.selectionStart, end: el.selectionEnd } : null;
   const captured = { key, value, focus, type: e.type };
   pending = pending.then(() => dispatch(captured));
+});
+function exportBackup() {
+  if (typeof snapshot !== 'string') return;
+  const url = URL.createObjectURL(new Blob([snapshot], { type: 'application/octet-stream' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'zuhyo-backup.zs1'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  fail('バックアップのダウンロードを開始しました。');
+}
+async function previewBackup(candidate, label) {
+  if (typeof candidate !== 'string' || !candidate.startsWith('ZS1|') || encoder.encode(candidate).length > LIMIT) throw Error('invalid backup');
+  const tree = parseTree(await run(['view', candidate]));
+  proposedBackup = candidate;
+  document.getElementById('backup-label').textContent = label;
+  backupPreview.replaceChildren(tree);
+  backupDialog.showModal();
+}
+backupFile.addEventListener('change', () => {
+  const file = backupFile.files[0];
+  if (!file) return;
+  pending = pending.then(async () => {
+    try {
+      if (file.size > LIMIT) throw Error('backup too large');
+      await previewBackup(decoder.decode(await file.arrayBuffer()), file.name);
+    } catch (_) { fail('バックアップを読み込めません。現在のスライドは変更していません。'); }
+  });
+});
+async function restoreBackup() {
+  try {
+    let latest = '';
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(BACKUP_PREFIX) && /^\d{13}\.[0-9a-f-]{36}$/.test(key.slice(BACKUP_PREFIX.length)) && key > latest) latest = key;
+    }
+    if (!latest) { fail('読み込み前のバックアップはありません。'); return; }
+    await previewBackup(localStorage.getItem(latest), 'このブラウザに保存された読み込み前のスライド');
+  } catch (_) { fail('バックアップを読み込めません。現在のスライドは変更していません。'); }
+}
+document.getElementById('backup-cancel').addEventListener('click', () => backupDialog.close());
+backupDialog.addEventListener('close', () => { proposedBackup = null; backupPreview.replaceChildren(); });
+document.getElementById('backup-confirm').addEventListener('click', () => {
+  const next = proposedBackup;
+  if (next === null) return;
+  backupDialog.close();
+  pending = pending.then(async () => {
+    try {
+      if (!navigator.locks) throw Error('local locking unavailable');
+      await navigator.locks.request(KEY, async () => {
+        if (localStorage.getItem(KEY) !== persisted) throw Error('concurrent change');
+        const tree = parseTree(await run(['view', next]));
+        let stamp = Date.now();
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          const suffix = key && key.startsWith(BACKUP_PREFIX) ? key.slice(BACKUP_PREFIX.length) : '';
+          if (/^\d{13}\.[0-9a-f-]{36}$/.test(suffix)) stamp = Math.max(stamp, Number(suffix.slice(0, 13)) + 1);
+        }
+        if (stamp > 9999999999999) throw Error('backup timestamp bounds');
+        const backupKey = BACKUP_PREFIX + String(stamp).padStart(13, '0') + '.' + crypto.randomUUID();
+        localStorage.setItem(backupKey, snapshot);
+        localStorage.setItem(KEY, next);
+        persisted = next; snapshot = next;
+        mount.replaceChildren(tree);
+        fail('バックアップから復元しました。');
+      });
+    } catch (error) {
+      const reason = error?.message === 'concurrent change' ? '別のタブで変更されています。再読込してください。' : '';
+      fail('復元できませんでした。' + reason + '前の内容を保持しています。');
+    }
+  });
 });
 async function start() {
   if (clientRuntimeProblems(descriptor, [], location.origin).length || clientRuntimeConnectSrc(descriptor, [], [], location.origin) !== "connect-src 'none'") throw Error('descriptor');
