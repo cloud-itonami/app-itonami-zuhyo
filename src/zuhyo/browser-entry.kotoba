@@ -13,7 +13,7 @@
       2)))
 
 ;; Encode the editor's declarative view, not browser objects. Every node is
-;; tag, class, type, data-k, value, text and child count, followed by children.
+;; tag, class, type, data-k, value, text, accessible label and child count, followed by children.
 ;; The host only validates this bounded wire value and renders its nodes.
 (defn browser-view-children [v :document i :i64 n :i64 acc :string] :string
   (if (= i n) acc
@@ -28,7 +28,8 @@
                    (string-concat (snap-frame (dstr (dget attrs :data-k)))
                     (string-concat (snap-frame (dstr (dget attrs :value)))
                      (string-concat (snap-frame (dstr (dget node :text)))
-                                    (snap-frame (string-from-i64 n))))))))]
+                      (string-concat (snap-frame (dstr (dget attrs :aria-label)))
+                                     (snap-frame (string-from-i64 n)))))))))]
     (browser-view-children children 0 n (string-concat acc fields))))
 
 (defn browser-render [raw :string] :i64
@@ -36,7 +37,7 @@
     (let [decoded (snap-decode raw)]
       (if (option-some?-of [:option :document] decoded)
         (let [state (option-value-of [:option :document] decoded (init))
-              result (browser-view-node (view state) "BV1|")
+              result (browser-view-node (view state) "BV2|")
               out (typed-cap-call :io/write :string :string (string-concat result "\n"))] 0)
         3))))
 

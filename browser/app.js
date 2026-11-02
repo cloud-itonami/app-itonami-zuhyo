@@ -14,7 +14,7 @@ let pending = Promise.resolve();
 function fail(message) { status.textContent = message; }
 function parseTree(wire) {
   const data = encoder.encode(wire);
-  if (data.length > MAX_VIEW || !wire.startsWith('BV1|') || data[data.length - 1] !== 10) throw Error('view format');
+  if (data.length > MAX_VIEW || !wire.startsWith('BV2|') || data[data.length - 1] !== 10) throw Error('view format');
   let pos = 4, nodes = 0;
   function field() {
     const start = pos;
@@ -27,13 +27,14 @@ function parseTree(wire) {
   const tags = new Set(['div', 'header', 'main', 'footer', 'input', 'button', 'span', 'h1', 'h2', 'p', 'ul', 'li']);
   function node(depth) {
     if (++nodes > 512 || depth > 12) throw Error('view bounds');
-    const [tag, css, type, key, value, text, count] = Array.from({ length: 7 }, field);
+    const [tag, css, type, key, value, text, label, count] = Array.from({ length: 8 }, field);
     if (!tags.has(tag) || !/^(0|[1-9][0-9]?)$/.test(count) || Number(count) > 32 || encoder.encode(key).length > 128) throw Error('view node');
     if ((type && !['text', 'button'].includes(type)) || (tag !== 'input' && value)) throw Error('view attribute');
     const el = document.createElement(tag);
     if (css) el.className = css;
     if (type) el.setAttribute('type', type);
     if (key) el.dataset.k = key;
+    if (label) el.setAttribute('aria-label', label);
     if (tag === 'input') el.value = value;
     if (text) el.textContent = text;
     for (let i = 0; i < Number(count); i++) el.append(node(depth + 1));
@@ -90,8 +91,10 @@ async function dispatch(event) {
       }
       fail('保存しました');
     });
-  } catch (_) {
-    fail('保存できませんでした。前の内容を保持しています。');
+  } catch (error) {
+    const reason = error?.message === 'worker timeout' ? '処理が時間内に完了しませんでした。' :
+      error?.message === 'concurrent change' ? '別のタブで変更されています。再読込してください。' : '';
+    fail('保存できませんでした。' + reason + '前の内容を保持しています。');
     try { await draw(snapshot, focus); } catch (_) { /* leave the previous view */ }
   }
 }

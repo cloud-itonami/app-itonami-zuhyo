@@ -42,3 +42,13 @@ Reproduce with `scripts/check-deck-wasm.py AMU_DIR NEW_OUTPUT CHROME`, then
 Accessibility, other browsers, maximum-size performance, crash/interruption
 recovery, old data migration, Itonami OS/QEMU, fleet, distribution and
 production qualification remain open.
+
+A follow-up carries Kotoba-generated input names via the `BV2|` view protocol;
+Chrome checked the heading and notes names and repeated the UI and fault tests.
+Native/Wasm model and reorder mutation checks passed. This does not establish
+full accessibility. The earlier intermittent first-tab refusal was reproduced
+with a diagnostic build as the adapter's 30-second Worker timeout; the reason
+for the Worker delay remains unproven. The adapter now distinguishes timeout
+and cross-tab conflict for the user, and an artificially shortened timeout test
+confirmed the prior saved deck remains. Follow-up browser Wasm SHA-256:
+`5b9f1cfc3f6d0ca37dd5af90aec201a81fe4d91af5925ed802bb09db8b7ec062`.

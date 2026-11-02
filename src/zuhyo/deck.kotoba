@@ -59,8 +59,15 @@
   (document-map :tag (document-string tag) :attrs attrs :text (document-string text)))
 (defn button [key :string text :string] :document
   (leaf "button" (document-map :data-k (document-string key) :type (document-string "button")) text))
+(defn input-label [key :string] :string
+  (cond (string=? key "title") "プレゼンテーションのタイトル"
+        (string=? key "heading") "スライドの見出し"
+        (string=? key "body") "スライドの本文"
+        (string=? key "notes") "発表者メモ"
+        :else "入力"))
 (defn input [key :string value :string] :document
-  (leaf "input" (document-map :data-k (document-string key) :type (document-string "text") :value (document-string value)) ""))
+  (leaf "input" (document-map :data-k (document-string key) :type (document-string "text")
+                              :aria-label (document-string (input-label key)) :value (document-string value)) ""))
 (defn view [s :document] :document
   (let [one (selected s) present (string=? (dstr (dget s :mode)) "present")
         shape (dstr (dget one :shape))]

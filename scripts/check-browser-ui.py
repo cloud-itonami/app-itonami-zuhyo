@@ -41,6 +41,8 @@ try:
     def input_(key, text):
         evaluate("(()=>{let e=document.querySelector('[data-k="+key+"]');e.value="+json.dumps(text,ensure_ascii=False)+";e.dispatchEvent(new Event('input',{bubbles:true}));})()")
     wait("document.querySelector('[data-k=heading]') !== null", 'initial slide')
+    if evaluate("document.querySelector('[data-k=heading]').getAttribute('aria-label')") != 'スライドの見出し': raise ValueError('heading lacks accessible name')
+    if evaluate("document.querySelector('[data-k=notes]').getAttribute('aria-label')") != '発表者メモ': raise ValueError('notes lack accessible name')
     evaluate("document.querySelector('[data-k=heading]').click()")
     time.sleep(1)
     if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") is not None: raise ValueError('focusing input wrote state')
@@ -88,14 +90,24 @@ try:
     while time.time() < end and second_eval("document.querySelector('[data-k=heading]')?.value") != '第一😀': time.sleep(.2)
     if second_eval("document.querySelector('[data-k=heading]')?.value") != '第一😀': raise TimeoutError('second tab')
     input_('title', '先の変更')
-    wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('先の変更')", 'first tab write')
+    wait("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('先の変更') || document.getElementById('status').textContent.includes('保存できませんでした')", 'first tab write')
+    if not evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')?.includes('先の変更')"):
+        raise ValueError('first tab write refused: ' + str(evaluate("document.getElementById('status').textContent")))
     second_eval("(()=>{let e=document.querySelector('[data-k=title]');e.value='後の変更';e.dispatchEvent(new Event('input',{bubbles:true}));})()")
     end = time.time() + 90
     while time.time() < end and not second_eval("document.getElementById('status')?.textContent.includes('保存できませんでした')"): time.sleep(.2)
     if not second_eval("document.getElementById('status')?.textContent.includes('保存できませんでした')"): raise TimeoutError('stale tab refusal')
+    if not second_eval("document.getElementById('status')?.textContent.includes('別のタブ')"): raise ValueError('conflict reason not shown')
     saved = evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')")
     if '先の変更' not in saved or '後の変更' in saved: raise ValueError('stale tab clobbered deck')
     pipe.call('Target.closeTarget', {'targetId': second})
+    evaluate("window.savedTimer=window.setTimeout;window.setTimeout=(f,n)=>window.savedTimer(f,n===30000?1:n)")
+    input_('heading', '時間切れ')
+    wait("document.getElementById('status').textContent.includes('時間内に完了しませんでした')", 'worker timeout')
+    if evaluate("localStorage.getItem('itonami.zuhyo.candidate.zs1')") != saved: raise ValueError('timeout clobbered storage')
+    evaluate("window.setTimeout=window.savedTimer")
+    pipe.call('Page.reload', {}, session)
+    wait("document.querySelector('[data-k=heading]')?.value === '第一😀'", 'reload after timeout')
     evaluate("window.savedWorker=window.Worker;window.Worker=class extends window.savedWorker {postMessage(msg){if(msg.args[0]==='view'){this.terminate();queueMicrotask(()=>this.onerror(new Event('error')))}else super.postMessage(msg)}}")
     input_('heading', '中断')
     wait("document.getElementById('status').textContent.includes('保存できませんでした')", 'worker interruption')
@@ -126,7 +138,7 @@ try:
         raise ValueError('tampered candidate ran or wrote state')
     requests = [e['params']['request']['url'] for e in pipe.events if e.get('method') == 'Network.requestWillBeSent']
     if not requests or any(not u.startswith(f'http://127.0.0.1:{server.server_port}/') for u in requests): raise ValueError('unexpected network request')
-    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
+    (out / 'result.json').write_text(json.dumps({'status':'PASS','checks':['edit','notes','add','remove','shape','reorder','present','reload','navigate','oversized-refusal','concurrent-tab-refusal','worker-timeout','worker-interruption','storage-failure','corrupt-refusal','digest-refusal','loopback-only']},indent=2)+'\n')
     print('PASS_ZUHYO_BROWSER_UI edit, present, save and refusal')
 finally:
     pipe.close(); server.shutdown(); server.server_close()
