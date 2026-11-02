@@ -20,6 +20,9 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 let bytes, compiledModule, snapshot, persisted;
 let pending = Promise.resolve();
+window.addEventListener('beforeunload', e => {
+  if (edits.size) { e.preventDefault(); e.returnValue = ''; }
+});
 
 function fail(message) { status.textContent = message; }
 function parseTree(wire) {
