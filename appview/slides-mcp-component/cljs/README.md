@@ -1,4 +1,4 @@
-# itonami Aya（綾）appview
+# itonami Zuhyo（図表）appview
 
 Run `npm ci` and `npm run build` here to regenerate the committed production
 `public/js/app.js` and manifest from the CLJS sources (Java/Clojure are required

@@ -1,1 +1,1 @@
-{:schema "etzhayyim.repository/v1" :name "itonami-aya" :title "itonami Aya（綾）" :repository "cloud-itonami/app-itonami-aya" :kind :standalone-app-artifact :canonical-record-format :edn :source-path "60-apps/etzhayyim-project-slides"}
+{:schema "etzhayyim.repository/v1" :name "itonami-zuhyo" :title "itonami Zuhyo（図表）" :repository "cloud-itonami/app-itonami-aya" :kind :standalone-app-artifact :canonical-record-format :edn :source-path "60-apps/etzhayyim-project-slides"}

@@ -1,4 +1,4 @@
-# itonami Aya（綾）— appview の公開方式
+# itonami Zuhyo（図表）— appview の公開方式
 
 2026-10-31 から（JUN-700）、この app は **ユーザーのブラウザで動く静的アプリ** として公開する。
 app origin（`aya.itonami.app`）ではサーバー処理をしない。workspace の共有契約
