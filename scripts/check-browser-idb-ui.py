@@ -5,19 +5,27 @@ Usage: script AMU BUILD NEW_OUTPUT CHROME
 Synthetic Chrome loopback only. No real user data, old-client coordination,
 crash/power-loss, OS/QEMU or release qualification.
 """
-import functools,http.server,importlib.util,json,sys,threading,time
+import functools,http.server,importlib.util,json,os,sys,threading,time
 from pathlib import Path
 if len(sys.argv)!=5:raise SystemExit(__doc__)
 amu,build,out,chrome=map(lambda s:Path(s).resolve(),sys.argv[1:]);out.mkdir(parents=True,exist_ok=False);(out/'profile').mkdir();(out/'downloads').mkdir()
 spec=importlib.util.spec_from_file_location('browser',amu/'scripts/seed/check-wasm32-browser.py');browser=importlib.util.module_from_spec(spec);spec.loader.exec_module(browser)
 class Quiet(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
+ def copyfile(self,source,outputfile):
+  if self.path.split('?',1)[0]=='/index.html':
+   delay=float(os.environ.get('OFFICE_TEST_HTML_DELAY','0'))
+   if not 0<=delay<=2:raise ValueError('invalid synthetic delay')
+   if delay:time.sleep(delay)
+  return super().copyfile(source,outputfile)
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(build)));threading.Thread(target=server.serve_forever,daemon=True).start();server2=None;pipe=browser.Pipe(str(chrome),out/'profile');port=server.server_port
 try:
  def tab(host='127.0.0.1',seed=None,target_port=None):
   t=pipe.call('Target.createTarget',{'url':'about:blank'})['targetId'];s=pipe.call('Target.attachToTarget',{'targetId':t,'flatten':True})['sessionId'];pipe.call('Page.enable',{},s)
   if seed:pipe.call('Page.addScriptToEvaluateOnNewDocument',{'source':seed},s)
-  pipe.call('Page.navigate',{'url':f'http://{host}:{target_port or port}/index.html'},s);return s
+  pipe.call('Page.navigate',{'url':f'http://{host}:{target_port or port}/index.html'},s)
+  wait('document.readyState !== "loading" && document.getElementById("status")!==null',s,'document ready')
+  return s
  def ev(x,s,awaited=False):
   r=pipe.call('Runtime.evaluate',{'expression':x,'returnByValue':True,'awaitPromise':awaited},s)
   if 'exceptionDetails' in r:raise ValueError(r['exceptionDetails'])
