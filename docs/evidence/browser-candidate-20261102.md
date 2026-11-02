@@ -61,3 +61,15 @@ after its digest check and sends the immutable `WebAssembly.Module` to each
 fresh Worker instead of sending bytes for repeated compilation. Chrome reran
 the UI, interrupted-save and negative digest tests successfully. This change
 is not evidence that the timeout is fixed or that other browsers are qualified.
+
+A small instrumented comparison alternated two runs of the prior bytes-per-
+Worker build and two runs of the precompiled-module build, each with eight
+synthetic heading saves in a fresh Chrome profile on the shared Mac. The
+harness verified identical Wasm and Worker bytes. All 32 saves completed.
+Step completion-notification medians were 11/10 ms (bytes) and 7/7 ms
+(module); view medians were 34/33 ms and 28/28 ms. No timeout occurred. These
+main-thread notification timings include instrumentation and scheduling. The
+sample is too small to establish speedup, root cause, or timeout resolution.
+Reproduce with `scripts/measure-worker-latency.py AMU_DIR OLD_BUILD NEW_BUILD
+NEW_OUTPUT CHROME`; the two builds must have the same Wasm and Worker bytes.
+The old build must be produced from the prior bytes-per-Worker revision.
