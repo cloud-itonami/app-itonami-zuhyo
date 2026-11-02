@@ -1,7 +1,7 @@
 # itonami Zuhyo（図表）— appview の公開方式
 
-2026-10-31 から（JUN-700）、この app は **ユーザーのブラウザで動く静的アプリ** として公開する。
-app origin（`aya.itonami.app`）ではサーバー処理をしない。workspace の共有契約
+公開候補（未デプロイ）では、この app を **ユーザーのブラウザで動く静的アプリ** として公開する。
+app origin（`zuhyo.itonami.app`）ではサーバー処理をしない。workspace の共有契約
 「Kotoba end-user apps run in the user's environment」に従う。
 
 ## 静的バンドル
@@ -12,12 +12,12 @@ app origin（`aya.itonami.app`）ではサーバー処理をしない。workspac
 |---|---|
 | `index.html` | 入口。CSP の `connect-src` は `client-runtime.json` から導いた値（今は `'none'`） |
 | `client-runtime.json` | `kotoba.app.client-runtime.v1` descriptor。外部操作は 0 件 |
-| `.well-known/did.json` | `did:web:aya.itonami.app` の DID 文書（静的） |
+| `.well-known/did.json` | `did:web:zuhyo.itonami.app` の DID 文書（静的） |
 | `js/app.js` | UI 本体。`cljs/public/js/app.js` はビルド済みのものがコミットされている。 |
 
 ## 公開
 
-IPFS（kotobase blocks）にバンドルを載せ、`_dnslink.aya.itonami.app` の TXT を
+IPFS（kotobase blocks）にバンドルを載せ、`_dnslink.zuhyo.itonami.app` の TXT を
 `/ipfs/<cid>` に向ける。`*.itonami.app` は DNSLink の名前空間（ADR-2609092600）で、
 net-kotobase/ipfs の Worker が配信する。Worker の route をこの app に追加しない。
 
