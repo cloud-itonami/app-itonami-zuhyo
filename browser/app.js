@@ -28,8 +28,13 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 let bytes, compiledModule, compiledDraftPolicy, snapshot, persisted;
 let pending = Promise.resolve();
+let pendingOperations = 0;
+function enqueue(operation) {
+  pendingOperations++;
+  pending = pending.then(operation).finally(() => { pendingOperations--; });
+}
 window.addEventListener('beforeunload', e => {
-  if (edits.size || draftBlocked) { e.preventDefault(); e.returnValue = ''; }
+  if (edits.size || draftBlocked || pendingOperations) { e.preventDefault(); e.returnValue = ''; }
 });
 
 function fail(message) { status.textContent = message; }
@@ -375,7 +380,7 @@ mount.addEventListener('compositionend', e => {
   if (!el || !mount.contains(el) || !composing.has(el.dataset.k)) return;
   const captured = captureInput(el);
   composing.delete(el.dataset.k);
-  pending = pending.then(() => dispatch(captured));
+  enqueue(() => dispatch(captured));
   // Let the browser deliver any final non-composing input before replacing DOM.
   if (!composing.size && deferredRender) {
     deferredRender.focus = captured.focus;
@@ -392,22 +397,22 @@ for (const kind of ['click', 'input']) mount.addEventListener(kind, e => {
   if (e.type === 'input') {
     if (e.isComposing) composing.add(key);
     const captured = captureInput(el);
-    if (!composing.has(key)) pending = pending.then(() => dispatch(captured));
+    if (!composing.has(key)) enqueue(() => dispatch(captured));
     return;
   }
   if (e.type === 'click' && key.startsWith('backup-') && edits.size) { fail('未保存の入力を再保存または修正してください。'); return; }
   if (e.type === 'click' && key === 'backup-import') { backupFile.value = ''; backupFile.click(); return; }
-  if (e.type === 'click' && key === 'backup-export') { pending = pending.then(exportBackup); return; }
-  if (e.type === 'click' && key === 'backup-restore') { pending = pending.then(restoreBackup); return; }
+  if (e.type === 'click' && key === 'backup-export') { enqueue(exportBackup); return; }
+  if (e.type === 'click' && key === 'backup-restore') { enqueue(restoreBackup); return; }
   const captured = { key, value, focus: null, type: e.type, sequence: 0 };
-  pending = pending.then(() => dispatch(captured));
+  enqueue(() => dispatch(captured));
 });
 retrySave.addEventListener('click', () => {
   if (draftBlocked || storageConflict) return;
   for (const [key, edit] of edits) {
     if (edit.failed) {
       edit.failed = false;
-      pending = pending.then(() => dispatch({ key, value: edit.value, sequence: edit.sequence, focus: null, type: 'input' }));
+      enqueue(() => dispatch({ key, value: edit.value, sequence: edit.sequence, focus: null, type: 'input' }));
     }
   }
   refreshRetry();
@@ -439,7 +444,7 @@ async function previewBackup(candidate, label) {
 backupFile.addEventListener('change', () => {
   const file = backupFile.files[0];
   if (!file) return;
-  pending = pending.then(async () => {
+  enqueue(async () => {
     try {
       if (edits.size) throw Error('unsaved input');
       if (file.size > LIMIT) throw Error('backup too large');
@@ -469,7 +474,7 @@ document.getElementById('backup-confirm').addEventListener('click', () => {
   const next = proposedBackup, base = proposedBase, basePersisted = proposedPersisted, baseRevision = proposedRevision;
   if (next === null) return;
   backupDialog.close();
-  pending = pending.then(async () => {
+  enqueue(async () => {
     try {
       if (snapshot !== base || persisted !== basePersisted || persistedState.revision !== baseRevision) throw Error('concurrent change');
       await verifyStorage();
