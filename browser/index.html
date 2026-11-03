@@ -20,6 +20,20 @@
     <button id="draft-download" type="button">未保存データを書き出す</button>
     <button id="draft-discard" type="button">未保存データを破棄</button>
   </section>
+  <section id="storage-conflict" role="alert" hidden>
+    <p>保存先と旧データを確認できません。両方の内容を控えてから再読込してください。</p>
+    <button id="export-current-conflict" type="button">新しい保存先を書き出す</button>
+    <button id="export-legacy-conflict" type="button">旧データを書き出す</button>
+    <button id="export-pending-conflict" type="button">未保存の入力を書き出す</button>
+  </section>
+  <dialog id="legacy-migration" aria-labelledby="legacy-migration-heading">
+    <h2 id="legacy-migration-heading">旧データの確認</h2>
+    <p>旧データは削除せず残します。旧版でも編集すると内容が分岐するため、移行後は旧版で編集しないでください。</p>
+    <p>プレビューには、保存時に選択されていたスライドが表示されます。全スライドの内容を表示するものではありません。</p>
+    <div id="legacy-migration-preview" inert></div>
+    <button id="legacy-migration-cancel" type="button">移行しない</button>
+    <button id="legacy-migration-confirm" type="button">内容を確認して移行</button>
+  </dialog>
   <button id="retry-save" type="button" hidden>未保存の入力を再保存</button>
   <div id="app"></div>
   <input id="backup-file" type="file" accept=".zs1,.zs2,application/octet-stream" hidden>

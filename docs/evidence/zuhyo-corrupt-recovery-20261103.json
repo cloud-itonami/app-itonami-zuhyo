@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-03",
+  "buildReceipt": {
+    "wasmSha256": "59d50c9adbebfae912da432ebd330b9011739eea7a4d5217c7ce83773dbc1bd9",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "38ea36c2a39d90346e59c3df21141862a450fd4f871bfd169b1426d19899f917",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab",
+    "draftPolicyRevision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+    "draftPolicySourceSha256": "8888ad0d88e8f954b5b1cd4fa0d3da62ac13e906f9410866cfd9dec6112f11f2",
+    "draftPolicyWasmSha256": "baa17f80e3ce7ce32b86086606168846454ca547842359251b50b911d4b89e42",
+    "didSha256": "c0d2281c76eca67add88ef2ad86201f5185eea70a9d404156dcc0fa0ee5737da",
+    "storageRevision": "d569c4cc7e884c58dc5867c38731c9465bac70dc",
+    "transactionalStorageSha256": "3d83f73142bd053dadb82d23d8e220ee9f3490515568b048d95f2ac1954c5dcf",
+    "managedStorageSha256": "f48d45cedf89be861f1a3376e04ded9a19c2914e3cbd4756326b1799ab7a14c0"
+  },
+  "observer": {
+    "repo": "cloud-itonami/app-itonami-bunsho",
+    "revision": "d569c4cc7e884c58dc5867c38731c9465bac70dc",
+    "path": "scripts/check-office-corrupt-recovery.py",
+    "sha256": "55e58d715bdc3ca402665a606d69bb762ec59c0caf571d3d250d1a7889ecca10"
+  },
+  "tests": {
+    "recovery": {
+      "sha256": "781bfaed615144e8c750967cc676528129b00a2f9e0f2de96cbc3f5356825c3b",
+      "result": {
+        "status": "PASS_CORRUPT_METADATA_RECOVERY",
+        "app": "zuhyo",
+        "checks": [
+          "invalid-record-refused",
+          "surviving-text-exported",
+          "stored-record-unchanged",
+          "invalid-utf16-export-preserved"
+        ],
+        "scope": "synthetic Chromium loopback, damaged record metadata only; no physical crash or real user data"
+      }
+    },
+    "regression": {
+      "sha256": "86b4d7a3a5819d4a4817b40ad668feebbeef2390c3c44a7b32254e0683cde126",
+      "result": {
+        "status": "PASS_ZUHYO_IDB_UI_SYNTHETIC",
+        "checks": [
+          "new-document-save-reload",
+          "stale-tab-conflict-preserves-draft",
+          "stale-revision-draft-preview-only",
+          "backup-preview-and-atomic-restore",
+          "save-abort-reload-recover-draft-and-retry",
+          "legacy-session-draft-preview-only",
+          "restore-abort-rolls-back-backup",
+          "postcommit-restore-truthful-warning",
+          "postcommit-save-truthful-warning",
+          "legacy-preview-explicit-trusted-confirm",
+          "legacy-copy-and-old-backup-preserved",
+          "old-backup-preview",
+          "old-writer-divergence-freezes",
+          "unfinished-and-late-composition-journaled",
+          "both-divergent-branches-and-unsaved-draft-export",
+          "migration-keyboard-cancel-preserves",
+          "invalid-legacy-refusal",
+          "invalid-utf16-legacy-export",
+          "migration-preview-race-refusal",
+          "migration-transaction-abort",
+          "migration-postcommit-divergence-preserved"
+        ],
+        "scope": "synthetic Chrome loopback; no real user data, atomic cross-store coordination, crash/power-loss, QEMU or release"
+      }
+    }
+  },
+  "scope": "Synthetic Chrome and corrupt metadata; no deleted or inaccessible IndexedDB recovery, real-user data, QEMU or deployment."
+}

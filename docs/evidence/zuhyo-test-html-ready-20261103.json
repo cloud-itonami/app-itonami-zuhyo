@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-03",
+  "status": "PASS_DELAYED_HTML_REGRESSION",
+  "delaySeconds": 0.25,
+  "receiptSha256": "86b4d7a3a5819d4a4817b40ad668feebbeef2390c3c44a7b32254e0683cde126",
+  "result": {
+    "status": "PASS_ZUHYO_IDB_UI_SYNTHETIC",
+    "checks": [
+      "new-document-save-reload",
+      "stale-tab-conflict-preserves-draft",
+      "stale-revision-draft-preview-only",
+      "backup-preview-and-atomic-restore",
+      "save-abort-reload-recover-draft-and-retry",
+      "legacy-session-draft-preview-only",
+      "restore-abort-rolls-back-backup",
+      "postcommit-restore-truthful-warning",
+      "postcommit-save-truthful-warning",
+      "legacy-preview-explicit-trusted-confirm",
+      "legacy-copy-and-old-backup-preserved",
+      "old-backup-preview",
+      "old-writer-divergence-freezes",
+      "unfinished-and-late-composition-journaled",
+      "both-divergent-branches-and-unsaved-draft-export",
+      "migration-keyboard-cancel-preserves",
+      "invalid-legacy-refusal",
+      "invalid-utf16-legacy-export",
+      "migration-preview-race-refusal",
+      "migration-transaction-abort",
+      "migration-postcommit-divergence-preserved"
+    ],
+    "scope": "synthetic Chrome loopback; no real user data, atomic cross-store coordination, crash/power-loss, QEMU or release"
+  },
+  "scope": "Synthetic Chrome test harness readiness; no application runtime or production change."
+}
