@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'none'">
+  <title>itonami Zuhyo</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <p id="status" role="status" aria-live="polite">読み込み中…</p>
+  <p id="draft-notice" role="status" hidden></p>
+  <section id="draft-recovery" aria-labelledby="draft-heading" hidden>
+    <h2 id="draft-heading">前回の未保存入力</h2>
+    <p id="draft-message"></p>
+    <pre id="draft-preview"></pre>
+    <button id="draft-retry-read" type="button" hidden>未保存データの確認を再試行</button>
+    <button id="draft-restore" type="button" disabled>入力を画面に戻す</button>
+    <button id="draft-download" type="button">未保存データを書き出す</button>
+    <button id="draft-discard" type="button">未保存データを破棄</button>
+  </section>
+  <button id="retry-save" type="button" hidden>未保存の入力を再保存</button>
+  <div id="app"></div>
+  <input id="backup-file" type="file" accept=".zs1,.zs2,application/octet-stream" hidden>
+  <dialog id="backup-dialog" aria-labelledby="backup-heading">
+    <h2 id="backup-heading">復元内容の確認</h2>
+    <p>プレビューには、保存時に選択されていたスライドが表示されます。全スライドの内容を表示するものではありません。</p>
+    <p id="backup-label"></p>
+    <p>現在のスライドは、このブラウザに読み込み前のバックアップとして保存されます。</p>
+    <div id="backup-preview" inert></div>
+    <button id="backup-cancel" type="button">キャンセル</button>
+    <button id="backup-confirm" type="button">この内容を復元</button>
+  </dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

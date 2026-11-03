@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-03",
+  "scope": "Loopback synthetic backup preview and same-tab edit; not actual user migration.",
+  "before": {
+    "build": {
+      "wasmSha256": "8ee1f10004fa57d6ff50f00855ed276031b4d008b4c65a8084b744df63ef7628",
+      "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+      "sourceSha256": "fec489655a1b3f8a87bc2f8a1c3adb3c56b1d2d3c7984dbd7d2cbb82185beb85",
+      "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+      "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+      "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+    },
+    "status": "FAIL_EXPECTED",
+    "observation": "stale preview accepted after same-tab edit saved"
+  },
+  "after": {
+    "build": {
+      "wasmSha256": "8ee1f10004fa57d6ff50f00855ed276031b4d008b4c65a8084b744df63ef7628",
+      "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+      "sourceSha256": "fec489655a1b3f8a87bc2f8a1c3adb3c56b1d2d3c7984dbd7d2cbb82185beb85",
+      "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+      "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+      "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+    },
+    "compatibility": {
+      "status": "PASS",
+      "checks": [
+        "ZS2 old editor refuses without write",
+        "new editor reopens exact text",
+        "ZS1 auto-protection, conflict and failed write",
+        "legacy backup protection",
+        "stale same-tab preview refusal",
+        "CR normalization refusal",
+        "loopback only"
+      ],
+      "scope": "synthetic candidate, no real-user migration or release"
+    },
+    "ui": {
+      "status": "PASS",
+      "checks": [
+        "backup-export-import-cancel-restore",
+        "backup-invalid-both-write-failures-conflict",
+        "edit",
+        "multiline-notes-presentation-reload",
+        "add",
+        "remove",
+        "shape",
+        "reorder",
+        "present",
+        "reload",
+        "navigate",
+        "synthetic-composition-with-concurrent-redraw",
+        "oversized-refusal",
+        "concurrent-tab-refusal",
+        "worker-timeout-retry",
+        "hidden-timeout-retry",
+        "worker-interruption-retry",
+        "storage-failure-retry",
+        "multiple-unsaved-fields",
+        "corrupt-refusal",
+        "digest-refusal",
+        "loopback-only"
+      ]
+    },
+    "draft": {
+      "status": "PASS",
+      "checks": [
+        "same-tab-reload",
+        "explicit-recovery-and-retry",
+        "stale-draft-refusal",
+        "raw-export",
+        "explicit-discard",
+        "malformed-draft-refusal",
+        "recovery-selection-race-refusal",
+        "journal-quota-and-retry",
+        "journal-cleanup-failure",
+        "initial-state-mismatch",
+        "program-digest-mismatch",
+        "journal-read-failure-retry",
+        "empty-journal-read-retry",
+        "loopback-only"
+      ],
+      "limitations": [
+        "sessionStorage only",
+        "not crash or closed-tab durability",
+        "synthetic data"
+      ]
+    }
+  },
+  "changedSourceSha256": {
+    "browser/app.js": "b14ffb2030425d5807bab8abc3203de2df8a208fd2c5f733177e69f09e6bdf76",
+    "scripts/check-multiline-compat.py": "fef617ca58b287f82e56f0d0e9d0296cfbfa0d82ef0afd06f0b1ae1c968d4e41"
+  },
+  "limitations": [
+    "Synthetic browser events on loopback; no real-user migration or public release.",
+    "No QEMU app execution or cross-host qualification for this candidate."
+  ]
+}

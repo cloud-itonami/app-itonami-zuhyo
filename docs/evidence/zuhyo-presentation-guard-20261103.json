@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-03",
+  "scope": "Synthetic macOS Arm native and loopback Chrome Wasm; not Itonami OS, actual user migration, deployment or production delivery.",
+  "change": "Present mode shows navigation and exit only, rejects editing actions in the Kotoba model, and keeps the title read-only.",
+  "model": {
+    "sourceSha256": "935c7d799ab717c324d4950c2fb81946fd334450c01cf4fef7cff7d54df497bf",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "results": {
+      "deck": {
+        "result": 0,
+        "wasmSha256": "2f70b796ae1f1d7dc3962c51d68d06a7954fe57075671492a6c5d05f9b45249c"
+      },
+      "mutant": {
+        "result": 1,
+        "wasmSha256": "3c3122fd3301be7daf97f7ea58a56bdf3a1f923d8da23ef4134d39de80e5df7b"
+      },
+      "version-mutant": {
+        "result": 1,
+        "wasmSha256": "27eaa50e9cbe12d51c100edc47c7553b000c06799d443df54ac4e19beffd5bc3"
+      },
+      "present-mutant": {
+        "result": 1,
+        "wasmSha256": "18ed214611d8530b9b363de910a19dfb58f85ffd34c500e39bb76e8aeee7edcd"
+      }
+    }
+  },
+  "build": {
+    "wasmSha256": "a9a5176501f1ce35b7ea9d91ed44a05bda47b55eda07c0f29ce5f7c2c46a1b2d",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "21e58f67d75096cac790bed2a63621ac8d2ae56a1ef628a334563824e59e89fc",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+  },
+  "browser": {
+    "status": "PASS",
+    "checks": [
+      "backup-export-import-cancel-restore",
+      "backup-invalid-both-write-failures-conflict",
+      "edit",
+      "multiline-notes-presentation-reload",
+      "add",
+      "remove",
+      "shape",
+      "reorder",
+      "present",
+      "reload",
+      "navigate",
+      "synthetic-composition-with-concurrent-redraw",
+      "oversized-refusal",
+      "concurrent-tab-refusal",
+      "worker-timeout-retry",
+      "hidden-timeout-retry",
+      "worker-interruption-retry",
+      "storage-failure-retry",
+      "multiple-unsaved-fields",
+      "corrupt-refusal",
+      "digest-refusal",
+      "loopback-only"
+    ]
+  },
+  "browserAdditionalAssertions": [
+    "no input, textarea, add, remove, up, down or import controls during presentation",
+    "presentation title is displayed"
+  ],
+  "nativeLinkedHost": "PASS including existing body-to-notes mutation control; source identity checked against browser build",
+  "limitations": [
+    "OS renderer and persistence adapter remain unimplemented",
+    "real legacy migration and publication remain unverified"
+  ]
+}

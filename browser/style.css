@@ -1,0 +1,23 @@
+:root { font-family: system-ui, sans-serif; color: #20242a; background: #f2f4f7; }
+body { margin: 0; }
+#status { margin: 0; padding: .5rem 1rem; background: #fff; }
+.deck { max-width: 65rem; margin: auto; }
+.bar, .tools { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem; background: white; }
+.deck-title { align-self: center; overflow-wrap: anywhere; }
+input, textarea { min-width: 12rem; padding: .45rem; }
+textarea { min-height: 6rem; resize: vertical; font: inherit; }
+.present p { white-space: pre-wrap; overflow-wrap: anywhere; }
+button { padding: .4rem .6rem; cursor: pointer; }
+.edit, .present { margin: 1rem; padding: 2rem; min-height: 20rem; background: white; }
+.edit { display: flex; flex-direction: column; gap: .5rem; }
+.present { position: relative; overflow: hidden; }
+.present.shape-rect { border-left: 2rem solid #648cda; }
+.present.shape-circle::after { content: ''; position: absolute; right: 3rem; bottom: 3rem; width: 6rem; height: 6rem; border-radius: 50%; background: #648cda; }
+.stats { padding: 1rem; color: #525a64; }
+
+dialog { width: min(52rem, 90vw); max-height: 85vh; border: 1px solid #808891; }
+dialog::backdrop { background: #0008; }
+#backup-preview { max-height: 50vh; overflow: auto; border: 1px solid #aab2bc; margin: 1rem 0; }
+
+#draft-notice, #draft-recovery { margin: .75rem auto; max-width: 68rem; padding: .75rem; background: #fff4d5; }
+#draft-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16rem; overflow: auto; }

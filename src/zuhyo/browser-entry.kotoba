@@ -1,0 +1,66 @@
+;; App-owned browser program entry. The build stages this alongside the editor
+;; definitions and exports this `main`; browser state remains local to the host.
+;; argv: init | step SNAPSHOT TARGET KIND VALUE. A successful run writes one
+;; versioned snapshot. Refusals write no snapshot and keep the host's prior one.
+(defn browser-arg [i :string] :string
+  (typed-cap-call :cli/args :string :string i))
+
+(defn browser-emit [s :document] :i64
+  (let [encoded (snap-encode s)]
+    (if (option-some?-of [:option :string] encoded)
+      (let [out (typed-cap-call :io/write :string :string
+                  (string-concat (option-value-of [:option :string] encoded "") "\n"))] 0)
+      2)))
+
+;; Encode the editor's declarative view, not browser objects. Every node is
+;; tag, class, type, data-k, value, text, accessible label and child count, followed by children.
+;; The host only validates this bounded wire value and renders its nodes.
+(defn browser-view-children [v :document i :i64 n :i64 acc :string] :string
+  (if (= i n) acc
+    (browser-view-children v (+ i 1) n (browser-view-node (dat v i) acc))))
+
+(defn browser-view-node [node :document acc :string] :string
+  (let [attrs (dget node :attrs) children (dget node :children)
+        n (if (vector? children) (document-count children) 0)
+        fields (string-concat (snap-frame (dstr (dget node :tag)))
+                 (string-concat (snap-frame (dstr (dget attrs :class)))
+                  (string-concat (snap-frame (dstr (dget attrs :type)))
+                   (string-concat (snap-frame (dstr (dget attrs :data-k)))
+                    (string-concat (snap-frame (dstr (dget attrs :value)))
+                     (string-concat (snap-frame (dstr (dget node :text)))
+                      (string-concat (snap-frame (dstr (dget attrs :aria-label)))
+                                     (snap-frame (string-from-i64 n)))))))))]
+    (browser-view-children children 0 n (string-concat acc fields))))
+
+(defn browser-render [raw :string] :i64
+  (if (> (string-byte-length raw) 35000) 3
+    (let [decoded (snap-decode raw)]
+      (if (option-some?-of [:option :document] decoded)
+        (let [state (option-value-of [:option :document] decoded (init))
+              result (browser-view-node (view state) "BV2|")
+              out (typed-cap-call :io/write :string :string (string-concat result "\n"))] 0)
+        3))))
+
+(defn main [] :i64
+  (let [argc (browser-arg "") op (browser-arg "0")]
+    (cond
+      (and (string=? argc "1") (string=? op "init")) (browser-emit (init))
+      (and (string=? argc "2") (string=? op "view")) (browser-render (browser-arg "1"))
+      (and (string=? argc "2") (string=? op "protect"))
+        (let [raw (browser-arg "1")]
+          (if (> (string-byte-length raw) 35000) 3
+            (let [decoded (snap-decode raw)]
+              (if (option-some?-of [:option :document] decoded)
+                (browser-emit (option-value-of [:option :document] decoded (init))) 3))))
+      (and (string=? argc "5") (string=? op "step"))
+        (let [raw (browser-arg "1") target (browser-arg "2")
+              kind (browser-arg "3") value (browser-arg "4")]
+          (if (or (> (string-byte-length raw) 35000) (> (string-byte-length target) 128)
+                  (> (string-byte-length value) 512)
+                  (not (or (string=? kind "click") (string=? kind "input"))))
+            3
+            (let [decoded (snap-decode raw)]
+              (if (option-some?-of [:option :document] decoded)
+                (browser-emit (step (option-value-of [:option :document] decoded (init)) target kind value))
+                3))))
+      :else 4)))

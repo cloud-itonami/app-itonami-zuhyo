@@ -1,0 +1,197 @@
+{
+  "date": "2026-11-03",
+  "scope": "Synthetic loopback only: protect old multiline ZS1 before editing or backup restore.",
+  "candidateBuild": {
+    "wasmSha256": "8ee1f10004fa57d6ff50f00855ed276031b4d008b4c65a8084b744df63ef7628",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "fec489655a1b3f8a87bc2f8a1c3adb3c56b1d2d3c7984dbd7d2cbb82185beb85",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab"
+  },
+  "changedSourceSha256": {
+    "browser/app.js": "fb8b8a4376a4789ecd68d98fceacea8638a7e77be2d187a84bbfca1ac08ec2ec",
+    "src/zuhyo/browser-entry.kotoba": "1c9dba5cd25af5852251b826e9e4cce66d400d4fea7d2e17b20d9c78e6d5b626",
+    "scripts/check-multiline-compat.py": "9316f3e87a25792d1f268f7762535311420bb637966109006f6d122c15478a74"
+  },
+  "compatibility": {
+    "status": "PASS",
+    "checks": [
+      "ZS2 old editor refuses without write",
+      "new editor reopens exact text",
+      "ZS1 auto-protection, conflict and failed write",
+      "legacy backup protection",
+      "CR normalization refusal",
+      "loopback only"
+    ],
+    "scope": "synthetic candidate, no real-user migration or release"
+  },
+  "deck": {
+    "sourceSha256": "a47207a1b762c62e912928736d625fe0f1454139d357e9557b7c3fb17b3d1abe",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "results": {
+      "deck": {
+        "result": 0,
+        "wasmSha256": "847390778171d31570f477ab37f5812ab634e38da7adef67ebc29a04f3de1d48"
+      },
+      "mutant": {
+        "result": 1,
+        "wasmSha256": "15b4eb080c68206f7edc76b57d40f38fd7c28f0efe5f0ffa13f12ff9e27d549e"
+      },
+      "version-mutant": {
+        "result": 1,
+        "wasmSha256": "a6356bb4c592b9f04a61bcfff5fe67f4c26718fcb78e9531abc815ccb575a8e0"
+      }
+    }
+  },
+  "regressions": {
+    "ui": {
+      "status": "PASS",
+      "checks": [
+        "backup-export-import-cancel-restore",
+        "backup-invalid-both-write-failures-conflict",
+        "edit",
+        "multiline-notes-presentation-reload",
+        "add",
+        "remove",
+        "shape",
+        "reorder",
+        "present",
+        "reload",
+        "navigate",
+        "synthetic-composition-with-concurrent-redraw",
+        "oversized-refusal",
+        "concurrent-tab-refusal",
+        "worker-timeout-retry",
+        "hidden-timeout-retry",
+        "worker-interruption-retry",
+        "storage-failure-retry",
+        "multiple-unsaved-fields",
+        "corrupt-refusal",
+        "digest-refusal",
+        "loopback-only"
+      ]
+    },
+    "draft": {
+      "status": "PASS",
+      "checks": [
+        "same-tab-reload",
+        "explicit-recovery-and-retry",
+        "stale-draft-refusal",
+        "raw-export",
+        "explicit-discard",
+        "malformed-draft-refusal",
+        "recovery-selection-race-refusal",
+        "journal-quota-and-retry",
+        "journal-cleanup-failure",
+        "initial-state-mismatch",
+        "program-digest-mismatch",
+        "journal-read-failure-retry",
+        "empty-journal-read-retry",
+        "loopback-only"
+      ],
+      "limitations": [
+        "sessionStorage only",
+        "not crash or closed-tab durability",
+        "synthetic data"
+      ]
+    },
+    "ime": {
+      "status": "PASS_CDP_SYNTHETIC_IME",
+      "mid": {
+        "value": "日本",
+        "stored": null,
+        "events": [
+          {
+            "type": "compositionstart",
+            "composing": false,
+            "trusted": true
+          },
+          {
+            "type": "compositionupdate",
+            "composing": false,
+            "trusted": true
+          },
+          {
+            "type": "beforeinput",
+            "composing": true,
+            "trusted": true
+          },
+          {
+            "type": "input",
+            "composing": true,
+            "trusted": true
+          }
+        ]
+      },
+      "textarea": "本文\n二行目",
+      "final": {
+        "value": "日本語",
+        "events": [
+          {
+            "type": "compositionstart",
+            "composing": false,
+            "trusted": true
+          },
+          {
+            "type": "compositionupdate",
+            "composing": false,
+            "trusted": true
+          },
+          {
+            "type": "beforeinput",
+            "composing": true,
+            "trusted": true
+          },
+          {
+            "type": "input",
+            "composing": true,
+            "trusted": true
+          },
+          {
+            "type": "compositionupdate",
+            "composing": false,
+            "trusted": true
+          },
+          {
+            "type": "beforeinput",
+            "composing": true,
+            "trusted": true
+          },
+          {
+            "type": "input",
+            "composing": true,
+            "trusted": true
+          },
+          {
+            "type": "compositionend",
+            "composing": false,
+            "trusted": false
+          }
+        ]
+      },
+      "limitations": [
+        "CDP-generated browser events; not a physical OS IME test",
+        "loopback local candidate; not a release"
+      ]
+    },
+    "unload": {
+      "status": "PASS",
+      "checks": [
+        "activated-dirty-reload-warning",
+        "cancel-retains-input",
+        "retry",
+        "clean-reload-no-warning"
+      ],
+      "limitations": [
+        "browser may suppress beforeunload",
+        "does not provide crash recovery"
+      ]
+    }
+  },
+  "limitations": [
+    "Synthetic data only; not real-user migration.",
+    "CDP IME is not a physical OS IME qualification.",
+    "No QEMU app execution, new-candidate cross-host qualification or publication."
+  ]
+}

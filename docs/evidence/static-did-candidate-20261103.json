@@ -1,0 +1,42 @@
+{
+  "status": "PASS_STATIC_DID_CANDIDATE",
+  "app": "zuhyo",
+  "builderSha256": "8b3c36b9490825f44a80b5818e20e78153e9349be682f73f5ae6673d0f760d26",
+  "didSha256": "c0d2281c76eca67add88ef2ad86201f5185eea70a9d404156dcc0fa0ee5737da",
+  "didId": "did:web:zuhyo.itonami.app",
+  "buildReceipt": {
+    "wasmSha256": "59d50c9adbebfae912da432ebd330b9011739eea7a4d5217c7ce83773dbc1bd9",
+    "compilerSha256": "2c551579c06a0228029bb06bae177e93126ecbbc37d636d693c471dbac8d1536",
+    "sourceSha256": "38ea36c2a39d90346e59c3df21141862a450fd4f871bfd169b1426d19899f917",
+    "brokerRevision": "e00ae75e1c589f76b4f53a88a5e3256c98c9e162",
+    "brokerSha256": "7f760128c3a58098123c31ec3dd34b9c871932e3933f2c952facc4ab0e647212",
+    "workerSha256": "58d606d0b3f22766a1b7288fe911c106aea9606fecfe59a2adb66a4bac8923ab",
+    "draftPolicyRevision": "26da503693359e3e7d544b50b97cae1c5cf6041e",
+    "draftPolicySourceSha256": "8888ad0d88e8f954b5b1cd4fa0d3da62ac13e906f9410866cfd9dec6112f11f2",
+    "draftPolicyWasmSha256": "baa17f80e3ce7ce32b86086606168846454ca547842359251b50b911d4b89e42",
+    "didSha256": "c0d2281c76eca67add88ef2ad86201f5185eea70a9d404156dcc0fa0ee5737da"
+  },
+  "previousReceiptSha256": "892f21fedef6e1f4a0a767f51c0ba041248956bda103e8649885b5fc52c5ad49",
+  "otherCandidateFilesByteIdentical": true,
+  "integrityTestSha256": "d5d025e719f5671536e31a44f1fd69e0be67136d0634013d3c48614455422db0",
+  "integrityTest": {
+    "status": "PASS_DID_CANDIDATE_INTEGRITY",
+    "apps": [
+      "bunsho",
+      "hyokeisan",
+      "zuhyo"
+    ],
+    "filesEach": 13,
+    "controls": {
+      "missing": "refused",
+      "wrong-id": "refused",
+      "symlink-dir": "refused",
+      "extra-hidden": "refused",
+      "did-bytes": "refused"
+    },
+    "defaultRecursiveAddOmitsDid": true,
+    "hiddenAddRetrievesExactDid": true,
+    "scope": "local isolated Kubo and static candidate bytes; no DID key control, public DNS/TLS, permanent pins or release"
+  },
+  "scope": "static synthetic candidate, DID has no verification keys; no live host, DNS/TLS, signature or release"
+}

@@ -1,0 +1,233 @@
+(ns zuhyo.deck (:export [main]))
+;; One local deck, up to 16 slides. Each slide carries heading, body, notes
+;; and one bounded shape. This is not a PowerPoint file format implementation.
+(defn dget [d :document k :keyword] :document (option-value-of [:option :document] (document-get d k) (document-null)))
+(defn dstr [d :document] :string (option-value-of [:option :string] (document-string-value d) ""))
+(defn dat [v :document i :i64] :document (option-value-of [:option :document] (document-vector-at v i) (document-null)))
+(defn slides [s :document] :document (dget s :slides))
+(defn slide [heading :string body :string notes :string shape :string] :document
+  (document-map :heading (document-string heading) :body (document-string body)
+                :notes (document-string notes) :shape (document-string shape)))
+(defn init [] :document
+  (document-map :title (document-string "無題のプレゼン") :mode (document-string "edit")
+                :current (document-string "0") :slides (document-vector (slide "新しいスライド" "" "" "none"))))
+(defn index-of-number [text :string i :i64 limit :i64] :i64
+  (if (>= i limit) -1 (if (string=? text (string-from-i64 i)) i (index-of-number text (+ i 1) limit))))
+(defn current [s :document] :i64 (index-of-number (dstr (dget s :current)) 0 (document-count (slides s))))
+(defn set-current [s :document i :i64] :document
+  (if (or (< i 0) (>= i (document-count (slides s)))) s (document-assoc s :current (document-string (string-from-i64 i)))))
+(defn selected [s :document] :document (dat (slides s) (current s)))
+(defn set-selected [s :document k :keyword value :string] :document
+  (let [i (current s)]
+    (if (< i 0) s (document-assoc s :slides (document-vector-assoc (slides s) i (document-assoc (selected s) k (document-string value)))))))
+(defn add-slide [s :document] :document
+  (let [n (document-count (slides s))]
+    (if (>= n 16) s (set-current (document-assoc s :slides (document-vector-conj (slides s) (slide "新しいスライド" "" "" "none"))) n))))
+(defn remove-slide [s :document] :document
+  (let [n (document-count (slides s)) i (current s)]
+    (if (or (<= n 1) (< i 0)) s
+      (let [next (document-assoc s :slides (document-vector-remove (slides s) i))]
+        (set-current next (if (>= i (- n 1)) (- n 2) i))))))
+(defn move-slide [s :document delta :i64] :document
+  (let [v (slides s) n (document-count v) i (current s) j (+ i delta)]
+    (if (or (< i 0) (< j 0) (>= j n)) s
+      (set-current (document-assoc s :slides (document-vector-assoc (document-vector-assoc v i (dat v j)) j (dat v i))) j))))
+(defn click [s :document target :string] :document
+  (cond (string=? target "prev") (set-current s (- (current s) 1))
+        (string=? target "next") (set-current s (+ (current s) 1))
+        (string=? target "mode") (document-assoc s :mode (document-string (if (string=? (dstr (dget s :mode)) "edit") "present" "edit")))
+        (string=? (dstr (dget s :mode)) "present") s
+        (string=? target "add") (add-slide s)
+        (string=? target "remove") (remove-slide s)
+        (string=? target "up") (move-slide s -1)
+        (string=? target "down") (move-slide s 1)
+        (string=? target "shape-none") (set-selected s :shape "none")
+        (string=? target "shape-rect") (set-selected s :shape "rect")
+        (string=? target "shape-circle") (set-selected s :shape "circle")
+        :else s))
+(defn step [s :document target :string kind :string value :string] :document
+  (cond (string=? kind "click") (click s target)
+        (and (string=? kind "input") (string=? (dstr (dget s :mode)) "edit") (<= (string-byte-length value) 512))
+          (cond (string=? target "title") (document-assoc s :title (document-string value))
+                (string=? target "heading") (set-selected s :heading value)
+                (string=? target "body") (set-selected s :body value)
+                (string=? target "notes") (set-selected s :notes value)
+                :else s)
+        :else s))
+(defn el [tag :string attrs :document children :document] :document
+  (document-map :tag (document-string tag) :attrs attrs :children children))
+(defn leaf [tag :string attrs :document text :string] :document
+  (document-map :tag (document-string tag) :attrs attrs :text (document-string text)))
+(defn button [key :string text :string] :document
+  (leaf "button" (document-map :data-k (document-string key) :type (document-string "button")) text))
+(defn input-label [key :string] :string
+  (cond (string=? key "title") "プレゼンテーションのタイトル"
+        (string=? key "heading") "スライドの見出し"
+        (string=? key "body") "スライドの本文"
+        (string=? key "notes") "発表者メモ"
+        :else "入力"))
+(defn input [key :string value :string] :document
+  (leaf "input" (document-map :data-k (document-string key) :type (document-string "text")
+                              :aria-label (document-string (input-label key)) :value (document-string value)) ""))
+(defn multiline [key :string value :string] :document
+  (leaf "textarea" (document-map :data-k (document-string key)
+                                 :aria-label (document-string (input-label key)) :value (document-string value)) ""))
+(defn view [s :document] :document
+  (let [one (selected s) present (string=? (dstr (dget s :mode)) "present")
+        shape (dstr (dget one :shape))]
+    (el "div" (document-map :class (document-string "deck"))
+      (document-vector
+        (el "header" (document-map :class (document-string "bar"))
+          (document-vector (if present (leaf "span" (document-map :class (document-string "deck-title")) (dstr (dget s :title)))
+                                (input "title" (dstr (dget s :title))))
+                           (button "mode" (if present "編集" "発表"))))
+        (el "div" (document-map :class (document-string "tools"))
+          (if present
+            (document-vector (button "prev" "前へ") (button "next" "次へ"))
+            (document-vector (button "prev" "前へ") (button "next" "次へ") (button "add" "追加")
+                             (button "remove" "削除") (button "up" "上へ") (button "down" "下へ")
+                             (button "backup-export" "バックアップ") (button "backup-import" "読み込む") (button "backup-restore" "読み込み前に戻す"))))
+        (if present
+          (el "main" (document-map :class (document-string (string-concat "present shape-" shape)))
+            (document-vector (leaf "h1" (document-map) (dstr (dget one :heading)))
+                             (leaf "p" (document-map) (dstr (dget one :body)))))
+          (el "main" (document-map :class (document-string (string-concat "edit shape-" shape)))
+            (document-vector (leaf "span" (document-map) "見出し") (input "heading" (dstr (dget one :heading)))
+                             (leaf "span" (document-map) "本文") (multiline "body" (dstr (dget one :body)))
+                             (leaf "span" (document-map) "発表者メモ") (multiline "notes" (dstr (dget one :notes)))
+                             (button "shape-none" "図形なし") (button "shape-rect" "四角") (button "shape-circle" "丸"))))
+        (leaf "footer" (document-map :class (document-string "stats"))
+          (string-concat (string-from-i64 (+ (current s) 1)) (string-concat " / " (string-from-i64 (document-count (slides s))))))))))
+
+;; Candidate ZS1 framed snapshot. Only a fully valid decoded state is accepted.
+(defn snap-frame [s :string] :string (string-concat (string-from-i64 (string-byte-length s)) (string-concat ":" s)))
+(defn snap-end [s :string i :i64 end :i64] :bool
+  (if (= i end) true
+    (if (> i end) false
+      (let [c (string-code-point-at s i)
+            w (cond (< c 128) 1 (< c 2048) 2 (< c 65536) 3 :else 4)]
+        (snap-end s (+ i w) end)))))
+
+(defn snap-header [s :string i :i64 n :i64 value :i64 digits :i64 zero :bool] :vector-i64
+  (if (>= i n) [-1 -1 -1]
+    (let [c (string-code-point-at s i)]
+      (cond
+        (= c 58) (let [begin (+ i 1) end (+ begin value)]
+          (if (and (> digits 0) (<= value 1024) (<= end n) (snap-end s begin end))
+            [begin end end] [-1 -1 -1]))
+        (or (< c 48) (> c 57) (>= digits 4) (and zero (> digits 0))) [-1 -1 -1]
+        :else (snap-header s (+ i 1) n (+ (* value 10) (- c 48)) (+ digits 1) (and (= digits 0) (= c 48)))))))
+
+(defn snap-read [s :string i :i64] :vector-i64
+  (snap-header s i (string-byte-length s) 0 0 false))
+
+(defn snap-text [s :string r :vector-i64] :string
+  (string-substring s (vector-at r 0) (vector-at r 1)))
+
+
+(defn shape? [s :string] :bool (or (string=? s "none") (string=? s "rect") (string=? s "circle")))
+(defn valid-slide? [v :document] :bool
+  (if (not (map? v)) false
+    (let [h (dget v :heading) b (dget v :body) n (dget v :notes) shape (dget v :shape)]
+      (and (= (document-count v) 4) (string? h) (string? b) (string? n) (string? shape)
+           (<= (string-byte-length (dstr h)) 512) (<= (string-byte-length (dstr b)) 512)
+           (<= (string-byte-length (dstr n)) 512) (shape? (dstr shape))))))
+(defn snap-slides [v :document i :i64 n :i64 acc :string] [:option :string]
+  (if (= i n) (option-some-of [:option :string] acc)
+    (let [item (dat v i)]
+      (if (not (valid-slide? item)) (option-none-of [:option :string])
+        (snap-slides v (+ i 1) n
+          (string-concat acc (string-concat (snap-frame (dstr (dget item :heading)))
+            (string-concat (snap-frame (dstr (dget item :body)))
+              (string-concat (snap-frame (dstr (dget item :notes))) (snap-frame (dstr (dget item :shape))))))))))))
+;; A v2 marker makes older single-line editors refuse multiline documents.
+(defn has-linebreak? [s :string] :bool
+  (or (>= (string-index-of s "\n") 0) (>= (string-index-of s "\r") 0)))
+(defn slide-has-linebreak? [v :document i :i64 n :i64] :bool
+  (if (= i n) false
+    (let [x (dat v i)]
+      (or (has-linebreak? (dstr (dget x :heading)))
+          (has-linebreak? (dstr (dget x :body)))
+          (has-linebreak? (dstr (dget x :notes)))
+          (slide-has-linebreak? v (+ i 1) n)))))
+(defn needs-zs2? [s :document] :bool
+  (or (has-linebreak? (dstr (dget s :title)))
+      (slide-has-linebreak? (slides s) 0 (document-count (slides s)))))
+(defn snap-encode [s :document] [:option :string]
+  (if (not (map? s)) (option-none-of [:option :string])
+    (let [title (dget s :title) mode (dget s :mode) cur (dget s :current) v (slides s)]
+      (if (and (= (document-count s) 4) (string? title) (string? mode) (string? cur) (vector? v)
+               (<= (string-byte-length (dstr title)) 512) (> (document-count v) 0) (<= (document-count v) 16)
+               (>= (index-of-number (dstr cur) 0 (document-count v)) 0)
+               (or (string=? (dstr mode) "edit") (string=? (dstr mode) "present")))
+        (snap-slides v 0 (document-count v) (string-concat (if (needs-zs2? s) "ZS2|" "ZS1|") (string-concat (snap-frame (dstr title))
+          (string-concat (snap-frame (dstr mode)) (string-concat (snap-frame (dstr cur)) (snap-frame (string-from-i64 (document-count v))))))))
+        (option-none-of [:option :string])))))
+(defn snap-number [s :string i :i64] :i64
+  (if (> i 16) -1 (if (string=? s (string-from-i64 i)) i (snap-number s (+ i 1)))))
+(defn snap-read-slides [s :string pos :i64 left :i64 acc :document] [:option :document]
+  (if (= left 0)
+    (if (= pos (string-byte-length s)) (option-some-of [:option :document] acc) (option-none-of [:option :document]))
+    (let [h (snap-read s pos)]
+      (if (or (< (vector-at h 0) 0) (> (- (vector-at h 1) (vector-at h 0)) 512)) (option-none-of [:option :document])
+        (let [b (snap-read s (vector-at h 2))]
+          (if (or (< (vector-at b 0) 0) (> (- (vector-at b 1) (vector-at b 0)) 512)) (option-none-of [:option :document])
+            (let [n (snap-read s (vector-at b 2))]
+              (if (or (< (vector-at n 0) 0) (> (- (vector-at n 1) (vector-at n 0)) 512)) (option-none-of [:option :document])
+                (let [sh (snap-read s (vector-at n 2))]
+                  (if (< (vector-at sh 0) 0) (option-none-of [:option :document])
+                    (let [shape (snap-text s sh)]
+                      (if (not (shape? shape)) (option-none-of [:option :document])
+                        (snap-read-slides s (vector-at sh 2) (- left 1)
+                          (document-vector-conj acc (slide (snap-text s h) (snap-text s b) (snap-text s n) shape)))))))))))))))
+(defn snap-decode [s :string] [:option :document]
+  (if (or (< (string-byte-length s) 4) (not (= (string-code-point-at s 0) 90))
+          (not (= (string-code-point-at s 1) 83))
+          (not (or (= (string-code-point-at s 2) 49) (= (string-code-point-at s 2) 50)))
+          (not (= (string-code-point-at s 3) 124))) (option-none-of [:option :document])
+    (let [t (snap-read s 4)]
+      (if (or (< (vector-at t 0) 0) (> (- (vector-at t 1) (vector-at t 0)) 512)) (option-none-of [:option :document])
+        (let [m (snap-read s (vector-at t 2))]
+          (if (< (vector-at m 0) 0) (option-none-of [:option :document])
+            (let [c (snap-read s (vector-at m 2)) mode (snap-text s m)]
+              (if (or (< (vector-at c 0) 0) (not (or (string=? mode "edit") (string=? mode "present")))) (option-none-of [:option :document])
+                (let [n (snap-read s (vector-at c 2))]
+                  (if (< (vector-at n 0) 0) (option-none-of [:option :document])
+                    (let [count (snap-number (snap-text s n) 0) cur (snap-text s c)]
+                      (if (or (< count 1) (< (index-of-number cur 0 count) 0)) (option-none-of [:option :document])
+                        (let [v (snap-read-slides s (vector-at n 2) count (document-vector))]
+                          (if (option-some?-of [:option :document] v)
+                            (option-some-of [:option :document] (document-map :title (document-string (snap-text s t))
+                              :mode (document-string mode) :current (document-string cur)
+                              :slides (option-value-of [:option :document] v (document-vector))))
+                            (option-none-of [:option :document])))))))))))))))
+(defn test-deck [] :i64
+  (let [a (step (step (init) "heading" "input" "第一😀") "notes" "input" "内緒\n二行目")
+        b (step (step (step a "add" "click" "") "body" "input" "二枚目\n本文") "shape-circle" "click" "")
+        c (step (step b "up" "click" "") "mode" "click" "")
+        blocked (step (step (step c "remove" "click" "") "heading" "input" "壊す") "shape-rect" "click" "")
+        removed (step (step c "mode" "click" "") "remove" "click" "")
+        screen (view c) header (dat (dget screen :children) 0) tools (dat (dget screen :children) 1)
+        encoded (snap-encode c) decoded (snap-decode (option-value-of [:option :string] encoded ""))
+        raw (option-value-of [:option :string] encoded "")
+        legacy (snap-decode (string-concat "ZS1|" (string-substring raw 4 (string-byte-length raw))))]
+    (if (and (= (document-count (slides c)) 2) (= (current c) 0)
+             (string=? (dstr (dget (selected c) :body)) "二枚目\n本文")
+             (string=? (dstr (dget (selected c) :shape)) "circle")
+             (string=? (dstr (dget c :mode)) "present")
+             (document-equal? blocked c)
+             (string=? (dstr (dget (dat (dget header :children) 0) :tag)) "span")
+             (= (document-count (dget tools :children)) 2)
+             (= (current (step c "next" "click" "")) 1)
+             (= (document-count (slides removed)) 1)
+             (string=? (dstr (dget (selected removed) :heading)) "第一😀")
+             (not (option-some?-of [:option :document] (snap-decode "雪雪")))
+             (not (option-some?-of [:option :document] (snap-decode "ZS雪雪")))
+             (option-some?-of [:option :document] decoded)
+             (string=? (string-substring (option-value-of [:option :string] encoded "") 0 4) "ZS2|")
+             (string=? (string-substring (option-value-of [:option :string] (snap-encode (init)) "") 0 4) "ZS1|")
+             (option-some?-of [:option :document] legacy)
+             (document-equal? c (option-value-of [:option :document] legacy (document-null)))
+             (document-equal? c (option-value-of [:option :document] decoded (document-null)))
+             (not (option-some?-of [:option :document] (snap-decode (string-concat (option-value-of [:option :string] encoded "") "x"))))) 0 1)))
+(defn main [] :i64 (test-deck))
