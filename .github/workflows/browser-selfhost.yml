@@ -34,7 +34,7 @@ jobs:
           git init -q "$root/broker"
           git -C "$root/broker" fetch --quiet --depth=1 --filter=blob:none https://github.com/kotoba-lang/wasm-webcomponent.git e00ae75e1c589f76b4f53a88a5e3256c98c9e162
           git init -q "$root/policy"
-          git -C "$root/policy" fetch --quiet --depth=1 --filter=blob:none https://github.com/kotoba-lang/kotoba.git 26da503693359e3e7d544b50b97cae1c5cf6041e
+          git -C "$root/policy" fetch --quiet --depth=1 --filter=blob:none https://github.com/kotoba-lang/kotoba.git c28c8b551d696df780dddff5064ac530ae29ff2f
           git init -q "$root/storage"
           git -C "$root/storage" fetch --quiet --depth=1 --filter=blob:none https://github.com/cloud-itonami/app-itonami-bunsho.git d569c4cc7e884c58dc5867c38731c9465bac70dc
       - name: Compile Wasm and package test inputs
